@@ -9,3 +9,13 @@ export const getAppToken = async () => {
     throw error
   }
 }
+
+export const authCustomerToken = async (pub: string, secret: string) => {
+  try {
+    const response = await http.post('/v1/user/authtoken', { pub, secret })
+    return response
+  } catch (error) {
+    console.error("Erro ao autenticar customer", error)
+    throw error
+  }
+}
