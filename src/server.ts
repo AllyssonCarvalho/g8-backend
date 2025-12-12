@@ -1,41 +1,50 @@
+import { fastifyCors } from '@fastify/cors'
+import { fastifySwagger } from '@fastify/swagger'
+import ScalarApiReference from '@scalar/fastify-api-reference'
 import { fastify } from 'fastify'
 import {
+  jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
-  jsonSchemaTransform,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod'
-import { fastifySwagger } from '@fastify/swagger'
-import { fastifyCors } from '@fastify/cors'
-import ScalarApiReference from '@scalar/fastify-api-reference'
+import { env } from 'process'
+import { registerRoutes } from './routes'
 
-const app = fastify().withTypeProvider<ZodTypeProvider>()
+export async function buildServer() {
+  const app = fastify().withTypeProvider<ZodTypeProvider>()
 
-app.setValidatorCompiler(validatorCompiler)
-app.setSerializerCompiler(serializerCompiler)
+  app.setValidatorCompiler(validatorCompiler)
+  app.setSerializerCompiler(serializerCompiler)
 
-app.register(fastifyCors, {
-  origin: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  credentials: true,
-})
+  app.register(fastifyCors, {
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  })
 
-app.register(fastifySwagger, {
-  openapi: {
-    info: {
-      title: 'G8-CRONOS API',
-      description: 'API for integration G8 and Cronos',
-      version: '1.0.0',
+  app.register(fastifySwagger, {
+    openapi: {
+      info: {
+        title: 'G8-CRONOS API',
+        description: 'API for integration G8 and Cronos',
+        version: '1.0.0',
+      },
     },
-  },
-  transform: jsonSchemaTransform,
-})
+    transform: jsonSchemaTransform,
+  })
 
-app.register(ScalarApiReference, {
-  routePrefix: '/docs',
-})
+  app.register(ScalarApiReference, {
+    routePrefix: '/docs',
+  })
 
-app.listen({ port: 3333, host: '0.0.0.0' }).then(() => {
-  console.log('Server running on http://localhost:3333')
-  console.log('docs avaliable on http://localhost:3333/docs')
+  await registerRoutes(app)
+
+  return app
+}
+
+buildServer().then((app) => {
+  app.listen({ port: Number(process.env.PORT), host: '0.0.0.0' })
+  console.log(`HTTP server running on http://localhost:${process.env.PORT}`)
+  console.log(`Swagger docs available on http://localhost:${process.env.PORT}/docs`)
 })
