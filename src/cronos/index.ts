@@ -3,7 +3,6 @@ import {
   onboardingResponseSchema,
   type OnboardingResponse,
 } from '@/schemas/cronos/onboardig-response.schema'
-import { updateSimplifyResponseSchema, type UpdateSimplifyResponse } from '@/schemas/cronos/update-simplify-response.schema'
 
 export const getAppToken = async () => {
   try {
@@ -41,33 +40,34 @@ export const individualRegister = async (
   }
 }
 
-export const simplifyRegister = async (
-  individualId: string,
+export const updateUserPF = async (
   data: unknown,
-): Promise<UpdateSimplifyResponse> => {
+): Promise<OnboardingResponse> => {
   try {
-    const response = await http.post(`/v1/register/simplify/${individualId}`, data)
-    const parsed = updateSimplifyResponseSchema.parse(response.data)
+    const response = await http.put(
+      'v1/register/simplify/{individual_id}',
+      data,
+    )
+    const parsed = onboardingResponseSchema.parse(response.data)
     return parsed
   } catch (error) {
-    console.error('Erro ao atualizar cadastro simplificado', error)
+    console.error('Erro ao atualizar usuário PF', error)
     throw error
   }
 }
 
-export const updateUserPF = async (
-  individualId: string,
-  data: unknown,
-): Promise<UpdateSimplifyResponse> => {
-  return simplifyRegister(individualId, data)
-}
-
 export const updateUserPJ = async (
-  individualId: string,
   data: unknown,
-): Promise<UpdateSimplifyResponse> => {
-  return simplifyRegister(individualId, data)
+): Promise<OnboardingResponse> => {
+  try {
+    const response = await http.put(
+      'v1/register/simplify/{individual_id}',
+      data,
+    )
+    const parsed = onboardingResponseSchema.parse(response.data)
+    return parsed
+  } catch (error) {
+    console.error('Erro ao atualizar usuário PJ', error)
+    throw error
+  }
 }
-
-// NOTE: updateUserPF and updateUserPJ weren't used and conflicted with simplify endpoint;
-// Keep simplifyRegister for POST behavior and remove unused duplicated PUT helpers if needed.
