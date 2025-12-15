@@ -19,3 +19,13 @@ export const authCustomerToken = async (pub: string, secret: string) => {
     throw error
   }
 }
+
+export const registerUser = async ({ document }: { document: string }) => {
+  try {
+    const response = await http.post('/v1/register/individual', { document })
+    return response
+  } catch (error) {
+    console.error("Erro ao registrar usuário", error)
+    throw error
+  }
+}
