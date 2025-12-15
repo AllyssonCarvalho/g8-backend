@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getAppTokenValue } from '@/utils/cronos-token'
 
 export const http = axios.create({
-  baseURL: process.env.CRONOS_BASE_URL
+  baseURL: process.env.CRONOS_BASE_URL,
 })
 
 // Interceptor para colocar o Bearer dinamicamente
@@ -12,10 +12,9 @@ http.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   } else {
-    // Sem token → usa Basic para pegar o token
-    config.headers.Authorization = `Basic ${Buffer
-      .from(`${process.env.PUBLIC_KEY}:${process.env.PRIVATE_KEY}`)
-      .toString('base64')}`
+    config.headers.Authorization = `Basic ${Buffer.from(
+      `${process.env.PUBLIC_KEY}:${process.env.PRIVATE_KEY}`,
+    ).toString('base64')}`
   }
 
   return config
