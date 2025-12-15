@@ -1,30 +1,28 @@
-import { authCustomerToken, getAppToken, registerUser } from "@/cronos";
-import { setAppToken } from "@/utils/cronos-token";
-import { FastifyInstance } from "fastify";
+import { authCustomerToken, getAppToken, individualRegister } from '@/cronos'
+import { setAppToken } from '@/utils/cronos-token'
+import { FastifyInstance } from 'fastify'
 
 export const authRoutes = async (app: FastifyInstance) => {
-    app.get('/token', async (request, reply) => {
+  app.get('/token', async (request, reply) => {
+    try {
+      const response = await getAppToken()
 
-        try {
-            const response = await getAppToken()
+      setAppToken(response.data.token)
 
-            setAppToken(response.data.token)
+      return reply.send({
+        success: true,
+        data: response.data,
+      })
+    } catch (error) {
+      console.error('Erro ao chamar API externa', error)
+      return reply.code(500).send({
+        success: false,
+        message: 'Erro ao chamar API externa',
+      })
+    }
+  })
 
-            return reply.send({
-                success: true,
-                data: response.data
-            });
-
-        } catch (error) {
-            console.error("Erro ao chamar API externa", error)
-            return reply.code(500).send({
-                success: false,
-                message: "Erro ao chamar API externa"
-            })
-        }
-    })
-
-    app.post('/customer-token', async (request, reply) => {
+         app.post('/customer-token', async (request, reply) => {
 
         try {
             const response = await authCustomerToken(process.env.PUBLIC_KEY!, process.env.PRIVATE_KEY!)
@@ -45,10 +43,10 @@ export const authRoutes = async (app: FastifyInstance) => {
 
         const { document } = request.body as { document: string };
         try {
-            const response = await registerUser({ document });
+            const response = await individualRegister({ document });
             return reply.send({
                 success: true,
-                data: response.data
+                data: response
             });
         } catch (error) {
             console.error("Erro ao chamar API externa", error);
@@ -58,4 +56,6 @@ export const authRoutes = async (app: FastifyInstance) => {
             });
         }
     })
+
+
 }
