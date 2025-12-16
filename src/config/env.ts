@@ -19,7 +19,18 @@ const envSchema = z.object({
   POSTGRES_HOST: z.string(),
   POSTGRES_PORT: z.coerce.number(),
 
-  DATABASE_URL: z.string().url(),
+  // DATABASE_URL é opcional, será construído se não fornecido
+  DATABASE_URL: z.string().url().optional(),
 })
 
-export const env = envSchema.parse(process.env)
+const parsedEnv = envSchema.parse(process.env)
+
+// Constrói DATABASE_URL se não foi fornecido
+const databaseUrl =
+  parsedEnv.DATABASE_URL ||
+  `postgresql://${parsedEnv.POSTGRES_USER}:${parsedEnv.POSTGRES_PASSWORD}@${parsedEnv.POSTGRES_HOST}:${parsedEnv.POSTGRES_PORT}/${parsedEnv.POSTGRES_DB}`
+
+export const env = {
+  ...parsedEnv,
+  DATABASE_URL: databaseUrl,
+}

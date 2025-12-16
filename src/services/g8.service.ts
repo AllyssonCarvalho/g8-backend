@@ -1,7 +1,5 @@
-import {
-  OnboardingResponse,
-  onboardingResponseSchema,
-} from '@/schemas/g8.schemas'
+
+import { OnboardingResponse, onboardingResponseSchema } from '@/schemas/cronos/g8.schemas'
 import { http } from '../libs/http-client'
 
 export const getAppToken = async () => {
@@ -28,7 +26,7 @@ export const authCustomerToken = async (pub: string, secret: string) => {
 }
 
 export const individualRegister = async (
-  data: unknown,
+  data: { document: string },
 ): Promise<OnboardingResponse> => {
   try {
     const response = await http.post('/v1/register/individual', data)
@@ -41,11 +39,12 @@ export const individualRegister = async (
 }
 
 export const updateUserPF = async (
+  individualId: string,
   data: unknown,
 ): Promise<OnboardingResponse> => {
   try {
-    const response = await http.put(
-      'v1/register/simplify/{individual_id}',
+    const response = await http.post(
+      `v1/register/simplify/${individualId}`,
       data,
     )
     const parsed = onboardingResponseSchema.parse(response.data)
@@ -57,11 +56,12 @@ export const updateUserPF = async (
 }
 
 export const updateUserPJ = async (
+  individualId: string,
   data: unknown,
 ): Promise<OnboardingResponse> => {
   try {
-    const response = await http.put(
-      'v1/register/simplify/{individual_id}',
+    const response = await http.post(
+      `v1/register/simplify/${individualId}`,
       data,
     )
     const parsed = onboardingResponseSchema.parse(response.data)
