@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getAppTokenValue } from '@/utils/cronos-token'
 
 export const http = axios.create({
-  baseURL: process.env.CRONOS_BASE_URL,
+  baseURL: process.env.G8_BASE_URL,
 })
 
 // Interceptor para colocar o Bearer dinamicamente

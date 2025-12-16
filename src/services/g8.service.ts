@@ -1,8 +1,8 @@
-import { http } from '@/lib/http-client'
 import {
+  OnboardingResponse,
   onboardingResponseSchema,
-  type OnboardingResponse,
-} from '@/schemas/cronos/onboardig-response.schema'
+} from '@/schemas/g8.schemas'
+import { http } from '../libs/http-client'
 
 export const getAppToken = async () => {
   try {
