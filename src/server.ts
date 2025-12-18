@@ -44,7 +44,7 @@ export async function buildServer() {
 }
 
 buildServer().then((app) => {
-  app.listen({ port: Number(process.env.PORT), host: '0.0.0.0' })
-  console.log(`HTTP server running on http://localhost:${process.env.PORT}`)
-  console.log(`Swagger docs available on http://localhost:${process.env.PORT}/docs`)
+  app.listen({ port: Number(process.env.PORT) ?? 3333, host: '0.0.0.0' })
+  console.log(`HTTP server running on http://localhost:${process.env.PORT ?? 3333}`)
+  console.log(`Swagger docs available on http://localhost:${process.env.PORT ?? 3333}/docs`)
 })
