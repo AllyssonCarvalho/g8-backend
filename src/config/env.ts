@@ -7,7 +7,7 @@ const envSchema = z.object({
     .enum(['development', 'production', 'test'])
     .default('development'),
 
-  G8_BASE_URL: z.string().url(),
+  G8_BASE_URL: z.string(),
   G8_API_KEY: z.string().min(10),
 
   PUBLIC_KEY: z.string().min(10),

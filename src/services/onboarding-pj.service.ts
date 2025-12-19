@@ -6,9 +6,94 @@ import { customers, onboardingStates } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { updateOnboardingProgress } from '@/repositories/customer-pj.repository'
 
-/**
- * Garante que o token da aplicação está configurado
- */
+function parseDateLike(value: unknown): Date | null {
+  if (value == null) return null
+  if (value instanceof Date && !isNaN(value.getTime())) return value
+  if (typeof value === 'number' || typeof value === 'string') {
+    const d = new Date(value as string | number)
+    return isNaN(d.getTime()) ? null : d
+  }
+  return null
+}
+
+function describeTypes(obj: Record<string, any>) {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(obj)) {
+    if (v == null) out[k] = String(v)
+    else if (v instanceof Date) out[k] = 'Date'
+    else if (Array.isArray(v))
+      out[k] = 'Array<' + (v.length ? typeof v[0] : 'unknown') + '>'
+    else out[k] = v.constructor?.name ?? typeof v
+  }
+  return out
+}
+
+function sanitizeDatesForDb(value: any): any {
+  if (value == null) return value
+  if (Array.isArray(value)) return value.map(sanitizeDatesForDb)
+  if (value instanceof Date) return value
+  if (typeof value === 'object') {
+    const out: Record<string, any> = {}
+    for (const [k, v] of Object.entries(value)) {
+      if (v == null) {
+        out[k] = v
+        continue
+      }
+      
+      if (
+        typeof v === 'number' ||
+        (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))
+      ) {
+        const parsed = parseDateLike(v)
+        if (parsed) {
+          out[k] = parsed
+          continue
+        }
+      }
+
+      //corrção da data
+      const keyLooksLikeDate = /(date|_at)$/i.test(k)
+      if (keyLooksLikeDate) {
+        const parsed = parseDateLike(v)
+        if (parsed) {
+          out[k] = parsed
+          continue
+        }
+      }
+
+      out[k] = sanitizeDatesForDb(v)
+    }
+    return out
+  }
+  return value
+}
+
+function normalizeDatesForApi(value: any): any {
+  if (value == null) return value
+  if (Array.isArray(value)) return value.map(normalizeDatesForApi)
+  if (value instanceof Date) return value.toISOString()
+  if (typeof value === 'object') {
+    const out: Record<string, any> = {}
+    for (const [k, v] of Object.entries(value)) {
+      if (v == null) {
+        out[k] = v
+        continue
+      }
+      const keyLooksLikeDate = /(date|_at)$/i.test(k)
+      if (keyLooksLikeDate && v instanceof Date) {
+        out[k] = v.toISOString()
+        continue
+      }
+      out[k] = normalizeDatesForApi(v)
+    }
+    return out
+  }
+  return value
+}
+
+
+//verifica o token
+
 async function ensureAppToken() {
   try {
     const response = await getAppToken()
@@ -21,24 +106,17 @@ async function ensureAppToken() {
   }
 }
 
-/**
- * Inicia onboarding PJ na API externa
- * Passo 1: Envia apenas o CNPJ
- */
+
 export async function startPjOnboarding(document: string) {
-  // Garante que tem token
   await ensureAppToken()
 
-  // Chama API externa
   const response = await individualRegister({ document })
 
-  // Busca ou cria customer local
   let customer = await db.query.customers.findFirst({
     where: eq(customers.document, document),
   })
 
   if (!customer) {
-    // Cria customer se não existir
     const [created] = await db
       .insert(customers)
       .values({
@@ -51,7 +129,6 @@ export async function startPjOnboarding(document: string) {
       .returning()
     customer = created
   } else {
-    // Atualiza customer existente
     await db
       .update(customers)
       .set({
@@ -61,25 +138,44 @@ export async function startPjOnboarding(document: string) {
       .where(eq(customers.id, customer.id))
   }
 
-  // Salva estado retornado
-  await db.insert(onboardingStates).values({
-    customer_id: customer.id,
-    success: response.success,
-    message: response.message,
-    code: response.code,
-    individual_id: response.individual_id,
-    document: response.document,
-    status: response.status,
-    status_label: response.status_label,
-    current_step: response.current_step?.toString(),
-    tipo_conta: response.tipo_conta as 'cnpj',
-    pending_fields: response.pending_fields,
-    uploaded_files: response.uploaded_files,
-  })
+  const respForDb = sanitizeDatesForDb(response)
+  try {
+    await db.insert(onboardingStates).values({
+      customer_id: customer.id,
+      success: respForDb.success,
+      message: respForDb.message,
+      code: respForDb.code,
+      individual_id: respForDb.individual_id,
+      document: respForDb.document,
+      status: respForDb.status,
+      status_label: respForDb.status_label,
+      current_step: respForDb.current_step?.toString(),
+      tipo_conta: respForDb.tipo_conta as 'cnpj',
+      pending_fields: respForDb.pending_fields,
+      uploaded_files: respForDb.uploaded_files,
+    })
+  } catch (err) {
+    console.error(
+      'Erro ao inserir onboardingStates — tipos dos valores:',
+      describeTypes({
+        success: respForDb.success,
+        message: respForDb.message,
+        code: respForDb.code,
+        individual_id: respForDb.individual_id,
+        document: respForDb.document,
+        status: respForDb.status,
+        status_label: respForDb.status_label,
+        current_step: respForDb.current_step,
+        tipo_conta: respForDb.tipo_conta,
+        pending_fields: respForDb.pending_fields,
+        uploaded_files: respForDb.uploaded_files,
+      }),
+    )
+    throw err
+  }
 
-  // Atualiza progresso local
   await updateOnboardingProgress(customer.id, {
-    pending_fields: response.pending_fields || [],
+    pending_fields: respForDb.pending_fields || [],
   })
 
   return {
@@ -89,18 +185,13 @@ export async function startPjOnboarding(document: string) {
   }
 }
 
-/**
- * Envia dados completos do PJ para API externa
- * Passo final: Envia todos os dados preenchidos
- */
+
+ //Envia dados completos do PJ pra API
 export async function syncPjToExternalApi(customerId: string) {
-  // Garante que tem token
   await ensureAppToken()
 
-  // Monta payload agregado
   const payload = await buildPjApiPayload(customerId)
 
-  // Valida antes de enviar
   const validation = validatePjPayload(payload)
   if (!validation.valid) {
     throw new Error(
@@ -108,7 +199,6 @@ export async function syncPjToExternalApi(customerId: string) {
     )
   }
 
-  // Busca customer para pegar individual_id
   const customer = await db.query.customers.findFirst({
     where: eq(customers.id, customerId),
   })
@@ -119,41 +209,58 @@ export async function syncPjToExternalApi(customerId: string) {
     )
   }
 
-  // Envia para API externa
-  const response = await updateUserPJ(customer.individual_id, payload)
+  const payloadForApi = normalizeDatesForApi(payload)
+  const response = await updateUserPJ(customer.individual_id, payloadForApi)
 
-  // Salva estado retornado
-  await db.insert(onboardingStates).values({
-    customer_id: customerId,
-    success: response.success,
-    message: response.message,
-    code: response.code,
-    individual_id: response.individual_id,
-    document: response.document,
-    status: response.status,
-    status_label: response.status_label,
-    current_step: response.current_step?.toString(),
-    tipo_conta: response.tipo_conta as 'cnpj',
-    pending_fields: response.pending_fields,
-    uploaded_files: response.uploaded_files,
-  })
+  const respForDb = sanitizeDatesForDb(response)
+  try {
+    await db.insert(onboardingStates).values({
+      customer_id: customerId,
+      success: respForDb.success,
+      message: respForDb.message,
+      code: respForDb.code,
+      individual_id: respForDb.individual_id,
+      document: respForDb.document,
+      status: respForDb.status,
+      status_label: respForDb.status_label,
+      current_step: respForDb.current_step?.toString(),
+      tipo_conta: respForDb.tipo_conta as 'cnpj',
+      pending_fields: respForDb.pending_fields,
+      uploaded_files: respForDb.uploaded_files,
+    })
+  } catch (err) {
+    console.error(
+      'Erro ao inserir onboardingStates — tipos dos valores:',
+      describeTypes({
+        success: respForDb.success,
+        message: respForDb.message,
+        code: respForDb.code,
+        individual_id: respForDb.individual_id,
+        document: respForDb.document,
+        status: respForDb.status,
+        status_label: respForDb.status_label,
+        current_step: respForDb.current_step,
+        tipo_conta: respForDb.tipo_conta,
+        pending_fields: respForDb.pending_fields,
+        uploaded_files: respForDb.uploaded_files,
+      }),
+    )
+    throw err
+  }
 
-  // Atualiza progresso local com campos pendentes da API
   await updateOnboardingProgress(customerId, {
-    last_sync_pending_fields: response.pending_fields,
+    last_sync_pending_fields: respForDb.pending_fields,
     last_sync_at: new Date(),
   })
 
-  // Marca como sincronizado
   await db
     .update(customers)
     .set({
       synced_at: new Date(),
-      external_status: response.status,
-      onboarding_status: response.success ? 'enviado' : 'erro',
+      external_status: respForDb.status,
+      onboarding_status: respForDb.success ? 'enviado' : 'erro',
     })
     .where(eq(customers.id, customerId))
 
   return response
 }
-

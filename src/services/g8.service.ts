@@ -1,10 +1,15 @@
 
 import { OnboardingResponse, onboardingResponseSchema } from '@/schemas/cronos/g8.schemas'
 import { http } from '../libs/http-client'
+import * as httpClientModule from '../libs/http-client'
+
+console.log('[g8.service] http-client module =', httpClientModule)
 
 export const getAppToken = async () => {
+  console.log('URL =', http.defaults)
   try {
     const response = await http.get('/v1/application/token')
+    console.log("Response =", response.data)
     return response
   } catch (error) {
     console.error('Erro ao chamar API externa', error)
@@ -29,7 +34,9 @@ export const individualRegister = async (
   data: { document: string },
 ): Promise<OnboardingResponse> => {
   try {
-    const response = await http.post('/v1/register/individual', data)
+    const response = await http.post('/v1/register/individual', {
+      document: data.document,
+    })
     const parsed = onboardingResponseSchema.parse(response.data)
     return parsed
   } catch (error) {
@@ -44,7 +51,7 @@ export const updateUserPF = async (
 ): Promise<OnboardingResponse> => {
   try {
     const response = await http.post(
-      `v1/register/simplify/${individualId}`,
+      `/v1/register/simplify/${individualId}`,
       data,
     )
     const parsed = onboardingResponseSchema.parse(response.data)

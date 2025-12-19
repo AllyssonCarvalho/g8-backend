@@ -1,21 +1,28 @@
 import axios from 'axios'
 import { getAppTokenValue } from '@/utils/cronos-token'
 
-export const http = axios.create({
-  baseURL: process.env.G8_BASE_URL,
-})
 
-// Interceptor para colocar o Bearer dinamicamente
+const baseURL = process.env.G8_BASE_URL?.trim()
+if (!baseURL) throw new Error('G8_BASE_URL vazio/undefined')
+export const http = axios.create({ baseURL })
+
+console.log('[http-client] baseURL =', baseURL)
+
 http.interceptors.request.use((config) => {
-  const token = getAppTokenValue()
+  config.headers = config.headers ?? {} 
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  } else {
-    config.headers.Authorization = `Basic ${Buffer.from(
-      `${process.env.PUBLIC_KEY}:${process.env.PRIVATE_KEY}`,
-    ).toString('base64')}`
+  const url = config.url ?? ''
+
+  if (url.includes('/v1/application/token')) {
+    config.headers.Authorization =
+      `Basic ${Buffer.from(
+        `${process.env.PUBLIC_KEY}:${process.env.PRIVATE_KEY}`,
+      ).toString('base64')}`
+    return config
   }
+
+  const token = getAppTokenValue()
+  if (token) config.headers.Authorization = `Bearer ${token}`
 
   return config
 })

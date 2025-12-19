@@ -227,12 +227,19 @@ export async function updateOnboardingProgress(
     filled_fields?: string[]
     pending_fields?: string[]
     last_sync_pending_fields?: string[]
-    last_sync_at?: Date
+    last_sync_at?: Date | string | null
   },
 ) {
   const existing = await db.query.onboardingProgress.findFirst({
     where: eq(onboardingProgress.customer_id, customerId),
   })
+
+  const lastSyncAt =
+    progress.last_sync_at == null
+      ? undefined
+      : progress.last_sync_at instanceof Date
+        ? progress.last_sync_at
+        : new Date(progress.last_sync_at)
 
   if (existing) {
     const [updated] = await db
@@ -240,11 +247,13 @@ export async function updateOnboardingProgress(
       .set({
         filled_fields: progress.filled_fields ?? existing.filled_fields,
         pending_fields: progress.pending_fields ?? existing.pending_fields,
-        last_sync_pending_fields: progress.last_sync_pending_fields ?? existing.last_sync_pending_fields,
-        last_sync_at: progress.last_sync_at ?? existing.last_sync_at,
+        last_sync_pending_fields:
+          progress.last_sync_pending_fields ?? existing.last_sync_pending_fields,
+        last_sync_at: lastSyncAt ?? existing.last_sync_at,
       })
       .where(eq(onboardingProgress.customer_id, customerId))
       .returning()
+
     return updated
   }
 
@@ -252,12 +261,14 @@ export async function updateOnboardingProgress(
     .insert(onboardingProgress)
     .values({
       customer_id: customerId,
-      filled_fields: progress.filled_fields || [],
-      pending_fields: progress.pending_fields || [],
+      filled_fields: progress.filled_fields ?? [],
+      pending_fields: progress.pending_fields ?? [],
       last_sync_pending_fields: progress.last_sync_pending_fields,
-      last_sync_at: progress.last_sync_at,
+      last_sync_at: lastSyncAt,
     })
     .returning()
+
   return created
 }
+
 

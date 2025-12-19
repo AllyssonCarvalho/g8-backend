@@ -6,6 +6,7 @@ import { z } from 'zod'
 export const authRoutes = async (app: FastifyInstance) => {
   app.get('/token', async (request, reply) => {
     try {
+      console.log('Chamando API externa')
       const response = await getAppToken()
 
       setAppToken(response.data.token)

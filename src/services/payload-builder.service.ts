@@ -1,9 +1,9 @@
 import { getCustomerPjById } from '@/repositories/customer-pj.repository'
 import type { CustomerPjAggregate } from '@/repositories/customer-pj.repository'
 
-/**
- * Tipo do payload esperado pela API externa para PJ
- */
+
+// payload esperado da API da PJ
+// ja vai ter que mudar
 export type PjApiPayload = {
   name?: string
   email?: string
@@ -54,9 +54,9 @@ export type PjApiPayload = {
   }>
 }
 
-/**
- * Agrega todos os dados do customer PJ e monta payload para API externa
- */
+
+ //grega todos os dados do PJ e faz o payload para API
+
 export async function buildPjApiPayload(
   customerId: string,
 ): Promise<PjApiPayload> {
@@ -70,7 +70,7 @@ export async function buildPjApiPayload(
 
   const payload: PjApiPayload = {}
 
-  // Dados básicos da empresa
+  // Dados da empresa
   if (pjData?.razao_social) payload.name = pjData.razao_social
   if (customer.email) payload.email = customer.email
   if (customer.phone_number) payload.phone = customer.phone_number
@@ -117,9 +117,12 @@ export async function buildPjApiPayload(
   // Sócios
   if (socios.length > 0) {
     payload.socios = socios.map((socio) => {
-      const socioPayload: PjApiPayload['socios']![0] = {
+      type SocioPayload = NonNullable<PjApiPayload['socios']>[number]
+
+      const socioPayload: SocioPayload = {
         document: socio.document,
       }
+      
 
       // Dados básicos do sócio
       if (socio.name) socioPayload.name = socio.name
@@ -174,23 +177,18 @@ export async function buildPjApiPayload(
   return payload
 }
 
-/**
- * Valida se todos os campos obrigatórios estão preenchidos
- */
 export function validatePjPayload(payload: PjApiPayload): {
   valid: boolean
   missingFields: string[]
 } {
   const missingFields: string[] = []
 
-  // Campos obrigatórios básicos
   if (!payload.name) missingFields.push('name')
   if (!payload.email) missingFields.push('email')
   if (!payload.phone) missingFields.push('phone')
   if (!payload.foundation_date) missingFields.push('foundation_date')
   if (!payload.cnae) missingFields.push('cnae')
 
-  // Endereço obrigatório
   if (!payload.street) missingFields.push('street')
   if (!payload.number) missingFields.push('number')
   if (!payload.postal_code) missingFields.push('postal_code')
@@ -199,15 +197,12 @@ export function validatePjPayload(payload: PjApiPayload): {
   if (!payload.state) missingFields.push('state')
   if (!payload.country) missingFields.push('country')
 
-  // Documentos obrigatórios
   if (!payload.contrato_social) missingFields.push('contrato_social')
   if (!payload.cartao_cnpj) missingFields.push('cartao_cnpj')
 
-  // Sócios obrigatórios
   if (!payload.socios || payload.socios.length === 0) {
     missingFields.push('socios')
   } else {
-    // Valida cada sócio
     payload.socios.forEach((socio, index) => {
       if (!socio.document) {
         missingFields.push(`socios[${index}].document`)
