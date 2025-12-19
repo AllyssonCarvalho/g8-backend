@@ -1,5 +1,6 @@
 
 import { OnboardingResponse, onboardingResponseSchema } from '@/schemas/cronos/g8.schemas'
+
 import { http } from '../libs/http-client'
 import * as httpClientModule from '../libs/http-client'
 
@@ -75,6 +76,20 @@ export const updateUserPJ = async (
     return parsed
   } catch (error) {
     console.error('Erro ao atualizar usuário PJ', error)
+    throw error
+  }
+}
+
+
+export const individualRegisterStep1 = async (
+  data: unknown,
+): Promise<OnboardingResponse> => {
+  try {
+    const response = await http.post('/v1/register/individual/step1', data)
+    const parsed = onboardingResponseSchema.parse(response.data)
+    return parsed
+  } catch (error) {
+    console.error('Erro no step1 do registro individual', error)
     throw error
   }
 }
