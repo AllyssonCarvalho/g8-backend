@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "node -r dotenv/config ./node_modules/tsx/dist/cli.cjs watch src/server.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "format": "biome format --write",
@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
+    "@fastify/multipart": "^9.3.0",
     "@fastify/swagger": "^9.6.1",
     "@scalar/fastify-api-reference": "^1.39.3",
     "axios": "^1.13.2",

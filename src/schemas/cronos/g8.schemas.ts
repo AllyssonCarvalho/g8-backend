@@ -53,6 +53,38 @@ export const onboardingResponseSchema = z.object({
   uploaded_files: z.array(z.any()).optional(),
 })
 
+export const registerStep1Schema = z.object({
+  individual_id: z.string(),
+  full_name: z.string().min(1),
+  username: z.string().min(1),
+  email: z.string(),
+
+  dataFundacaoEmpresa: z.string().optional().nullable(),
+  cpfRepresentanteEmpresa: z.string().optional().nullable(),
+  cnae: z.string().optional().nullable(),
+  cnae_descricao: z.string().optional().nullable(),
+  capital_social: z.string().optional().nullable(),
+  razaoSocial: z.string().optional().nullable(),
+  nomeFantasia: z.string().optional().nullable(),
+})
+
+export const registerStep2Schema = z.object({
+  individual_id: z.string(),
+  phone_prefix: z.string().min(1),
+  phone_number: z.string().min(1),
+  code: z.string().optional(),
+})
+
+export const registerStep3Schema = z.object({
+  individual_id: z.string(),
+  image_type: z.string(),
+  document_type: z.string(),
+})
+
+export type RegisterStep1Data = z.infer<typeof registerStep1Schema>
+export type RegisterStep2Data = z.infer<typeof registerStep2Schema>
+export type RegisterStep3Data = z.infer<typeof registerStep3Schema>
+
 export type OnboardingResponse = z.infer<typeof onboardingResponseSchema>
 
 export type KnownPendingField = z.infer<typeof pendingFieldEnum>

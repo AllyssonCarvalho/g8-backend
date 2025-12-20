@@ -10,12 +10,15 @@ import {
 } from 'fastify-type-provider-zod'
 import { env } from 'process'
 import { registerRoutes } from './routes'
+import fastifyMultipart from '@fastify/multipart'
 
 export async function buildServer() {
   const app = fastify().withTypeProvider<ZodTypeProvider>()
 
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
+
+  app.register(fastifyMultipart)
 
   app.register(fastifyCors, {
     origin: true,
