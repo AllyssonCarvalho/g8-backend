@@ -1,4 +1,8 @@
-import { authCustomerToken, getAppToken, individualRegisterStep1 } from '@/services/g8.service'
+import {
+  authCustomerToken,
+  getAppToken,
+  individualRegisterStep1,
+} from '@/services/g8.service'
 import { setAppToken } from '@/utils/cronos-token'
 import { type FastifyInstance } from 'fastify'
 import { z } from 'zod'
@@ -41,6 +45,4 @@ export const authRoutes = async (app: FastifyInstance) => {
       })
     }
   })
-
-  
 }

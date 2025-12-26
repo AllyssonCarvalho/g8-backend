@@ -39,7 +39,7 @@ function sanitizeDatesForDb(value: any): any {
         out[k] = v
         continue
       }
-      
+
       if (
         typeof v === 'number' ||
         (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))
@@ -91,24 +91,22 @@ function normalizeDatesForApi(value: any): any {
   return value
 }
 
-
 //verifica o token
 
-async function ensureAppToken() {
-  try {
-    const response = await getAppToken()
-    if (response.data?.token) {
-      setAppToken(response.data.token)
-    }
-  } catch (error) {
-    console.error('Erro ao obter token da aplicação', error)
-    throw error
-  }
-}
-
+// async function ensureAppToken() {
+//   try {
+//     const response = await getAppToken()
+//     if (response.data?.token) {
+//       setAppToken(response.data.token)
+//     }
+//   } catch (error) {
+//     console.error('Erro ao obter token da aplicação', error)
+//     throw error
+//   }
+// }
 
 export async function startPjOnboarding(document: string) {
-  await ensureAppToken()
+  // await ensureAppToken()
 
   const response = await individualRegister({ document })
 
@@ -185,10 +183,9 @@ export async function startPjOnboarding(document: string) {
   }
 }
 
-
- //Envia dados completos do PJ pra API
+//Envia dados completos do PJ pra API
 export async function syncPjToExternalApi(customerId: string) {
-  await ensureAppToken()
+  // await ensureAppToken()
 
   const payload = await buildPjApiPayload(customerId)
 

@@ -69,7 +69,7 @@ export const registerStep1Schema = z.object({
 })
 
 export const registerStep2Schema = z.object({
-  individual_id: z.string(),
+  individual_id: z.string().optional(),
   phone_prefix: z.string().min(1),
   phone_number: z.string().min(1),
   code: z.string().optional(),

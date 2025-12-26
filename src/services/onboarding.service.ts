@@ -3,6 +3,7 @@ import {
   RegisterStep2Data,
   RegisterStep3Data,
 } from '@/schemas/cronos/g8.schemas'
+import { getAppTokenValue } from '@/utils/cronos-token'
 
 export const getUserOnboardingSituation = async (document: string) => {
   try {
@@ -17,6 +18,7 @@ export const getUserOnboardingSituation = async (document: string) => {
 export const registerStep2 = async (data: RegisterStep2Data) => {
   try {
     const response = await http.post('/v1/register/individual/step2', data)
+    console.log('RESPOSTA DO SMS', getAppTokenValue())
     return response.data
   } catch (error) {
     console.error('Erro ao registrar step 2', error)
@@ -27,6 +29,7 @@ export const registerStep2 = async (data: RegisterStep2Data) => {
 export const registerStep2_1 = async (data: RegisterStep2Data) => {
   try {
     const response = await http.put('/v1/register/individual/step2', data)
+    console.log('RESPOSTA DO SMS', response)
     return response.data
   } catch (error) {
     console.error('Erro ao registrar step 2', error)
@@ -52,6 +55,15 @@ export const resendCode = async (individual_id: string) => {
     return response.data
   } catch (error) {
     console.error('Erro ao reenviar código', error)
+    throw error
+  }
+}
+export const consultaCep = async (cep: string) => {
+  try {
+    const response = await http.get(`/v1/register/consultcep/${cep}`)
+    return response
+  } catch (error) {
+    console.error('Erro ao consultar cep', error)
     throw error
   }
 }
