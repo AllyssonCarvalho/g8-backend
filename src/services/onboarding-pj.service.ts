@@ -74,7 +74,6 @@ function sanitizeDatesForDb(value: any): any {
 function normalizeDatesForApi(value: any): any {
   if (value == null) return value
   if (Array.isArray(value)) return value.map(normalizeDatesForApi)
-  if (value instanceof Date) return value.toISOString()
   if (typeof value === 'object') {
     const out: Record<string, any> = {}
     for (const [k, v] of Object.entries(value)) {
@@ -140,46 +139,6 @@ export async function startPjOnboarding(document: string) {
       })
       .where(eq(customers.id, customer.id))
   }
-
-  const respForDb = sanitizeDatesForDb(response)
-  try {
-    await db.insert(onboardingStates).values({
-      customer_id: customer.id,
-      success: respForDb.success,
-      message: respForDb.message,
-      code: respForDb.code,
-      individual_id: respForDb.individual_id,
-      document: respForDb.document,
-      status: respForDb.status,
-      status_label: respForDb.status_label,
-      current_step: respForDb.current_step?.toString(),
-      tipo_conta: respForDb.tipo_conta as 'cnpj',
-      pending_fields: respForDb.pending_fields,
-      uploaded_files: respForDb.uploaded_files,
-    })
-  } catch (err) {
-    console.error(
-      'Erro ao inserir onboardingStates — tipos dos valores:',
-      describeTypes({
-        success: respForDb.success,
-        message: respForDb.message,
-        code: respForDb.code,
-        individual_id: respForDb.individual_id,
-        document: respForDb.document,
-        status: respForDb.status,
-        status_label: respForDb.status_label,
-        current_step: respForDb.current_step,
-        tipo_conta: respForDb.tipo_conta,
-        pending_fields: respForDb.pending_fields,
-        uploaded_files: respForDb.uploaded_files,
-      }),
-    )
-    throw err
-  }
-
-  await updateOnboardingProgress(customer.id, {
-    pending_fields: respForDb.pending_fields || [],
-  })
 
   return {
     customer_id: customer.id,

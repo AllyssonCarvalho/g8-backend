@@ -72,7 +72,7 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
     try {
       const data = registerStep1Schema.parse(request.body)
 
-      const result = await individualRegisterStep1(data)
+      await individualRegisterStep1(data)
 
       return reply.code(201).send({
         success: true,

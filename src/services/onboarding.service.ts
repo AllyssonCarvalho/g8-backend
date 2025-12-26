@@ -17,9 +17,9 @@ import {
 import bcrypt from 'bcrypt'
 
 type RegisterStep3Input = RegisterStep3Data & {
-  fileBase64: string
-  fileMimeType: string
-  fileName: string
+  fileBase64?: string
+  fileMimeType?: string
+  fileName?: string
 }
 
 type RegisterStep5Input = RegisterStep5Data & {
@@ -100,7 +100,7 @@ export const registerStep3 = async (data: RegisterStep3Input) => {
   try {
     const formData = new FormData()
 
-    const fileBlob = base64ToBlob(data.fileBase64, data.fileMimeType)
+    const fileBlob = base64ToBlob(data.fileBase64!, data.fileMimeType!)
 
     formData.append('individual_id', data.individual_id)
     formData.append('image_type', data.image_type)
@@ -121,9 +121,9 @@ export const registerStep3 = async (data: RegisterStep3Input) => {
     await createCustomerDocument({
       customer_id: customer.id,
       document_type: data.document_type,
-      file_base64: data.fileBase64,
-      file_name: data.fileName,
-      mime_type: data.fileMimeType,
+      file_base64: data.fileBase64!,
+      file_name: data.fileName!,
+      mime_type: data.fileMimeType!,
     })
 
     const response = await http.post(
@@ -139,6 +139,52 @@ export const registerStep3 = async (data: RegisterStep3Input) => {
     return { data: response.data, updatedCustomer }
   } catch (error) {
     console.error('Erro ao registrar step 3', error)
+    throw error
+  }
+}
+
+export const registerStepStep3_1 = async (individual_id: string) => {
+  try {
+    const response = await http.get(
+      `/v1/register/individual/step3/${individual_id}`,
+    )
+    return response.data
+  } catch (error) {
+    console.error('Erro ao obter lista de socios', error)
+    throw error
+  }
+}
+
+export const registerStepStep3_2 = async (
+  individual_id: string,
+  id_socio: string,
+) => {
+  try {
+    const response = await http.put(
+      `/v1/register/individual/step3/${individual_id}`,
+      null,
+      {
+        params: {
+          id_socio,
+        },
+      },
+    )
+
+    return response.data
+  } catch (error) {
+    console.error('Erro ao registrar step 3.2', error)
+    throw error
+  }
+}
+
+export const deletarSocio = async (individual_id: string, id_socio: string) => {
+  try {
+    const response = await http.delete(
+      `/v1/register/individual/step3/${individual_id}/${id_socio}`,
+    )
+    return response.data
+  } catch (error) {
+    console.error('Erro ao excluir usuario', error)
     throw error
   }
 }

@@ -79,6 +79,7 @@ export const registerStep3Schema = z.object({
   individual_id: z.string(),
   image_type: z.string(),
   document_type: z.string(),
+  file: z.any()
 })
 
 export const registerStep4Schema = z.object({
