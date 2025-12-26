@@ -7,8 +7,10 @@ import {
   updateCustomer,
 } from '@/repositories/customer.repository'
 import {
+  RegisterStep1PJData,
   RegisterStep2Data,
   RegisterStep3Data,
+  RegisterStep3PJData,
   RegisterStep4Data,
   RegisterStep5Data,
   RegisterStep6Data,
@@ -324,3 +326,91 @@ export const registerStep7 = async (data: RegisterStep7Data) => {
     throw error
   }
 }
+
+
+export const registerStep1PJ = async (customerId: string, data: RegisterStep1PJData) => {
+  try {
+    const response = await http.post('/v1/register/individual/step1', data)
+
+       const updatedUser = await updateCustomer(customerId, {
+      current_step: 2,
+      updated_at: new Date(),
+    })
+
+    return response.data
+  } catch (error) {
+    console.error('Erro ao registrar step 1 PJ', error)
+    throw error
+  }
+}
+
+
+export const registerStep3PJ = async (customerId: string, data: any) => {
+  try {
+    const response = await http.post(
+      '/v1/register/individual/step3',
+      data,
+      {
+        headers: {
+          ...data.getHeaders(), // 🔑 OBRIGATÓRIO
+        },
+      },
+    )
+
+
+    const updatedUser = await updateCustomer(customerId, {
+      current_step: 4,
+      updated_at: new Date(),
+    })
+
+
+    return response.data
+  } catch (error) {
+    console.error('Erro ao registrar step 3 PJ', error)
+    throw error
+  }
+}
+
+export const registerStep4PJ = async (customerId: string, data: any) => {
+  try {
+    const response = await http.post(
+      '/v1/register/individual/step4',
+      data,
+      {
+        headers: {
+          ...data.getHeaders(), // 🔑 OBRIGATÓRIO
+        },
+      },
+    )
+
+
+    await updateCustomer(customerId, {
+      current_step: 5,
+      updated_at: new Date(),
+    })
+
+
+    return response.data
+  } catch (error) {
+    console.error('Erro ao registrar step 4 PJ', error)
+    throw error
+  }
+}
+
+export const registerStep5PJ = async (customerId: string, data: any) => {
+  try {
+    const response = await http.post('/v1/register/individual/step5', data)
+
+       const updatedUser = await updateCustomer(customerId, {
+      current_step: 6,
+      updated_at: new Date(),
+      ...data
+    })
+
+    return { data: response.data, updatedUser }
+  } catch (error) {
+    console.error('Erro ao registrar step 5 PJ', error)
+    throw error
+  }
+}
+

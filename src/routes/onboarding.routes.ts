@@ -123,7 +123,7 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
     }
   })
 
-  app.put('/register/step-2-1', async (request, reply) => {
+  app.put('/onboarding/step-2-1', async (request, reply) => {
     try {
       const data = registerStep2Schema.parse(request.body)
 

@@ -1,20 +1,24 @@
-import { sql, eq, and } from 'drizzle-orm'
 import { db } from '@/db'
 import {
-  customers,
-  customerPjData,
-  socios,
-  socioDocuments,
   customerDocuments,
+  customerPjData,
+  customers,
   onboardingProgress,
+  socioDocuments,
+  socios,
 } from '@/db/schema'
-
+import { http } from '@/libs/http-client'
+import console from 'console'
+import { and, eq, sql } from 'drizzle-orm'
+import FormData from 'form-data'
 
 export type CustomerPjAggregate = {
   customer: typeof customers.$inferSelect
   pjData: typeof customerPjData.$inferSelect | null
-  socios: (typeof socios.$inferSelect & { documents: typeof socioDocuments.$inferSelect[] })[]
-  documents: typeof customerDocuments.$inferSelect[]
+  socios: (typeof socios.$inferSelect & {
+    documents: (typeof socioDocuments.$inferSelect)[]
+  })[]
+  documents: (typeof customerDocuments.$inferSelect)[]
   progress: {
     filled_fields: string[]
     pending_fields: string[]
@@ -90,16 +94,26 @@ export async function getCustomerPjByDocument(
 
 export async function upsertCustomerPjData(
   customerId: string,
-  data: Partial<Omit<typeof customerPjData.$inferInsert, 'id' | 'customer_id' | 'created_at' | 'updated_at'>>,
+  data: Partial<
+    Omit<
+      typeof customerPjData.$inferInsert,
+      'id' | 'customer_id' | 'created_at' | 'updated_at'
+    >
+  >,
 ) {
   const cleanData: Record<string, any> = {}
-  
-  if (data.razao_social !== undefined) cleanData.razao_social = String(data.razao_social)
-  if (data.nome_fantasia !== undefined) cleanData.nome_fantasia = String(data.nome_fantasia)
-  if (data.foundation_date !== undefined) cleanData.foundation_date = String(data.foundation_date)
+
+  if (data.razao_social !== undefined)
+    cleanData.razao_social = String(data.razao_social)
+  if (data.nome_fantasia !== undefined)
+    cleanData.nome_fantasia = String(data.nome_fantasia)
+  if (data.foundation_date !== undefined)
+    cleanData.foundation_date = String(data.foundation_date)
   if (data.cnae !== undefined) cleanData.cnae = String(data.cnae)
-  if (data.cnae_description !== undefined) cleanData.cnae_description = String(data.cnae_description)
-  if (data.capital_social !== undefined) cleanData.capital_social = String(data.capital_social)
+  if (data.cnae_description !== undefined)
+    cleanData.cnae_description = String(data.cnae_description)
+  if (data.capital_social !== undefined)
+    cleanData.capital_social = String(data.capital_social)
 
   const existing = await db.query.customerPjData.findFirst({
     where: eq(customerPjData.customer_id, customerId),
@@ -111,11 +125,11 @@ export async function upsertCustomerPjData(
       .set(cleanData)
       .where(eq(customerPjData.customer_id, customerId))
       .returning()
-    
+
     await db.execute(
-      sql`UPDATE customer_pj_data SET updated_at = now() WHERE customer_id = ${customerId}`
+      sql`UPDATE customer_pj_data SET updated_at = now() WHERE customer_id = ${customerId}`,
     )
-    
+
     return updated
   }
 
@@ -129,52 +143,115 @@ export async function upsertCustomerPjData(
   return created
 }
 
-export async function upsertSocio(
+export async function upsertSocioWithDocuments(
   customerId: string,
-  socioData: {
-    document: string
-    name?: string
-    document_name?: string
-    document_number?: string
-    mother_name?: string
-    father_name?: string
-    pep?: number
-    document_issuance?: string
-    document_state?: string
-    issuance_date?: string
-    nationality?: string
-    nationality_state?: string
-    marital_status?: number
-    birth_date?: string
-    gender?: string
-    percentual_participacao?: string
-    majority?: boolean
-  },
+  socioData: any,
+  documents: {
+    document_type: string
+    file_base64: string
+    file_name: string
+    file_size: number
+    mime_type: string
+  }[],
 ) {
-  const existing = await db.query.socios.findFirst({
-    where: and(
-      eq(socios.customer_id, customerId),
-      eq(socios.document, socioData.document),
-    ),
-  })
-
-  if (existing) {
-    const [updated] = await db
-      .update(socios)
-      .set(socioData)
-      .where(eq(socios.id, existing.id))
-      .returning()
-    return updated
-  }
-
-  const [created] = await db
-    .insert(socios)
-    .values({
-      customer_id: customerId,
-      ...socioData,
+  try {
+    // ==========================
+    // 1. UPSERT SOCIO (BANCO)
+    // ==========================
+    const existing = await db.query.socios.findFirst({
+      where: and(
+        eq(socios.customer_id, customerId),
+        eq(socios.document, socioData.document),
+      ),
     })
-    .returning()
-  return created
+
+    let socio: any
+
+    if (existing) {
+      const [updated] = await db
+        .update(socios)
+        .set(socioData)
+        .where(eq(socios.id, existing.id))
+        .returning()
+
+      socio = updated
+    } else {
+      const [created] = await db
+        .insert(socios)
+        .values({
+          customer_id: customerId,
+          ...socioData,
+        })
+        .returning()
+
+      socio = created
+    }
+
+    // ==========================
+    // 2. SALVAR DOCUMENTOS (BANCO)
+    // ==========================
+    if (documents.length) {
+      const docsToInsert = documents.map((doc) => ({
+        socio_id: socio.id,
+        document_type: doc.document_type,
+        file_base64: doc.file_base64,
+        file_name: doc.file_name,
+        file_size: doc.file_size,
+        mime_type: doc.mime_type,
+        uploaded_to_exter: false,
+      }))
+
+      await db.insert(socioDocuments).values(docsToInsert)
+    }
+
+    // ==========================
+    // 3. MONTAR FORMDATA (API EXTERNA)
+    // ==========================
+    const formData = new FormData()
+
+    // 👉 campos texto (tudo que veio no form-data original)
+    for (const [key, value] of Object.entries(socioData)) {
+      if (value !== undefined && value !== null) {
+        formData.append(key, String(value))
+      }
+    }
+
+    // 👉 arquivos
+    for (const doc of documents) {
+      const buffer = Buffer.from(doc.file_base64, 'base64')
+
+      formData.append(doc.document_type, buffer, {
+        filename: doc.file_name,
+        contentType: doc.mime_type,
+        knownLength: doc.file_size,
+      })
+    }
+
+    // ==========================
+    // 4. CHAMADA EXTERNA
+    // ==========================
+      const response = await http.post(
+        '/v1/register/individual/step3',
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+          },
+        },
+      )
+
+      return {
+        socio,
+        external_response: response.data,
+      }
+
+  } catch (error) {
+    console.error(
+      'Erro ao upsertar sócio com documentos',
+      JSON.stringify(error, null, 2),
+    )
+    throw new Error('Erro ao upsertar sócio')
+  }
 }
 
 export async function addCustomerDocument(
@@ -262,7 +339,8 @@ export async function updateOnboardingProgress(
         filled_fields: progress.filled_fields ?? existing.filled_fields,
         pending_fields: progress.pending_fields ?? existing.pending_fields,
         last_sync_pending_fields:
-          progress.last_sync_pending_fields ?? existing.last_sync_pending_fields,
+          progress.last_sync_pending_fields ??
+          existing.last_sync_pending_fields,
         last_sync_at: lastSyncAt ?? existing.last_sync_at,
       })
       .where(eq(onboardingProgress.customer_id, customerId))
@@ -284,5 +362,3 @@ export async function updateOnboardingProgress(
 
   return created
 }
-
-
