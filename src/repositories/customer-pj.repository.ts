@@ -92,6 +92,15 @@ export async function upsertCustomerPjData(
   customerId: string,
   data: Partial<Omit<typeof customerPjData.$inferInsert, 'id' | 'customer_id' | 'created_at' | 'updated_at'>>,
 ) {
+  const cleanData: Record<string, any> = {}
+  
+  if (data.razao_social !== undefined) cleanData.razao_social = String(data.razao_social)
+  if (data.nome_fantasia !== undefined) cleanData.nome_fantasia = String(data.nome_fantasia)
+  if (data.foundation_date !== undefined) cleanData.foundation_date = String(data.foundation_date)
+  if (data.cnae !== undefined) cleanData.cnae = String(data.cnae)
+  if (data.cnae_description !== undefined) cleanData.cnae_description = String(data.cnae_description)
+  if (data.capital_social !== undefined) cleanData.capital_social = String(data.capital_social)
+
   const existing = await db.query.customerPjData.findFirst({
     where: eq(customerPjData.customer_id, customerId),
   })
@@ -99,9 +108,14 @@ export async function upsertCustomerPjData(
   if (existing) {
     const [updated] = await db
       .update(customerPjData)
-      .set(data)
+      .set(cleanData)
       .where(eq(customerPjData.customer_id, customerId))
       .returning()
+    
+    await db.execute(
+      sql`UPDATE customer_pj_data SET updated_at = now() WHERE customer_id = ${customerId}`
+    )
+    
     return updated
   }
 
@@ -109,7 +123,7 @@ export async function upsertCustomerPjData(
     .insert(customerPjData)
     .values({
       customer_id: customerId,
-      ...data,
+      ...cleanData,
     })
     .returning()
   return created

@@ -80,9 +80,18 @@ function normalizeDatesForApi(value: any): any {
         continue
       }
       const keyLooksLikeDate = /(date|_at)$/i.test(k)
-      if (keyLooksLikeDate && v instanceof Date) {
-        out[k] = v.toISOString()
-        continue
+      if (keyLooksLikeDate) {
+        if (v instanceof Date) {
+          out[k] = v.toISOString()
+          continue
+        }
+        if (typeof v === 'string') {
+          const parsed = parseDateLike(v)
+          if (parsed) {
+            out[k] = parsed.toISOString()
+            continue
+          }
+        }
       }
       out[k] = normalizeDatesForApi(v)
     }

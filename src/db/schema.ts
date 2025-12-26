@@ -61,8 +61,7 @@ export const customers = pgTable(
       .notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
-      .notNull()
-      .$onUpdate(() => sql`now()`),
+      .notNull(),
     synced_at: timestamp('synced_at', { withTimezone: true }),
   },
   (t) => ({
@@ -101,8 +100,7 @@ export const customerPfData = pgTable('customer_pf_data', {
     .notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
-    .notNull()
-    .$onUpdate(() => sql`now()`),
+    .notNull(),
 })
 
 // pj
@@ -125,8 +123,7 @@ export const customerPjData = pgTable('customer_pj_data', {
     .notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
-    .notNull()
-    .$onUpdate(() => sql`now()`),
+    .notNull(),
 })
 
 //documents
@@ -151,8 +148,7 @@ export const customerDocuments = pgTable('customer_documents', {
     .notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
-    .notNull()
-    .$onUpdate(() => sql`now()`),
+    .notNull(),
 }, (t) => ({
   customerDocIdx: index('customer_documents_customer_idx').on(t.customer_id),
   docTypeIdx: index('customer_documents_type_idx').on(t.document_type),
@@ -193,8 +189,7 @@ export const socios = pgTable('socios', {
     .notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
-    .notNull()
-    .$onUpdate(() => sql`now()`),
+    .notNull(),
 }, (t) => ({
   customerIdx: index('socios_customer_idx').on(t.customer_id),
 }))
@@ -242,8 +237,7 @@ export const onboardingProgress = pgTable('onboarding_progress', {
     .notNull(),
   updated_at: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
-    .notNull()
-    .$onUpdate(() => sql`now()`),
+    .notNull(),
 })
 
 // histórico
