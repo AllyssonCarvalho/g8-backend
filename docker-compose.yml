@@ -1,23 +1,6 @@
 version: "3.9"
 
 services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: g8-microservice
-    ports:
-      - "3333:3333"
-    env_file:
-      - .env
-    depends_on:
-      - database
-    networks:
-      - api_network
-    volumes:
-      - .:/app
-      - /app/node_modules
-
   database:
     image: postgres:16
     container_name: g8_postgres
@@ -30,6 +13,31 @@ services:
       - api_network
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: g8-microservice
+    ports:
+      - "3333:3333"
+    env_file:
+      - .env
+    environment:
+       DOCKER: "true"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - api_network
+    volumes:
+      - .:/app
+      - /app/node_modules
 
 volumes:
   pgdata:

@@ -1,4 +1,5 @@
 import { fastifyCors } from '@fastify/cors'
+import fastifyMultipart from '@fastify/multipart'
 import { fastifySwagger } from '@fastify/swagger'
 import ScalarApiReference from '@scalar/fastify-api-reference'
 import { fastify } from 'fastify'
@@ -8,9 +9,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod'
-import { env } from 'process'
 import { registerRoutes } from './routes'
-import fastifyMultipart from '@fastify/multipart'
 
 export async function buildServer() {
   const app = fastify().withTypeProvider<ZodTypeProvider>()
@@ -48,6 +47,10 @@ export async function buildServer() {
 
 buildServer().then((app) => {
   app.listen({ port: Number(process.env.PORT) ?? 3333, host: '0.0.0.0' })
-  console.log(`HTTP server running on http://localhost:${process.env.PORT ?? 3333}`)
-  console.log(`Swagger docs available on http://localhost:${process.env.PORT ?? 3333}/docs`)
+  console.log(
+    `HTTP server running on http://localhost:${process.env.PORT ?? 3333}`,
+  )
+  console.log(
+    `Swagger docs available on http://localhost:${process.env.PORT ?? 3333}/docs`,
+  )
 })

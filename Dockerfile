@@ -28,6 +28,11 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/drizzle ./drizzle
+COPY start.sh ./start.sh
+
 
 # Copia a pasta dist gerada no build
 COPY --from=builder /app/dist ./dist

@@ -5,6 +5,9 @@ import { db } from '@/db'
 import { customers, onboardingStates } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { updateOnboardingProgress } from '@/repositories/customer-pj.repository'
+import { listCustomerPartners } from '@/repositories/customer-partners-repository'
+import { findCustomerById } from '@/repositories/customer.repository'
+import { CustomerNotFoundError } from '@/errors/customer-errors'
 
 function parseDateLike(value: unknown): Date | null {
   if (value == null) return null
@@ -261,6 +264,20 @@ export async function syncPjToExternalApi(customerId: string) {
       onboarding_status: respForDb.success ? 'enviado' : 'erro',
     })
     .where(eq(customers.id, customerId))
+
+  return response
+}
+
+export async function listSociosPJ(customerId: string) {
+  await ensureAppToken()
+
+  const customer = await findCustomerById(customerId)
+
+  if (!customer) {
+    throw CustomerNotFoundError()
+  }
+
+  const response = await listCustomerPartners(customer.id)
 
   return response
 }

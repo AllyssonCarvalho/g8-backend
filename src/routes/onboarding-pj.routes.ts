@@ -1,17 +1,24 @@
-import { type FastifyInstance } from 'fastify'
-import { z } from 'zod'
 import { db } from '@/db'
 import { customers } from '@/db/schema'
-import { eq } from 'drizzle-orm'
 import {
-  upsertCustomerPjData,
-  upsertSocio,
   addCustomerDocument,
   addSocioDocument,
   getCustomerPjById,
+  upsertCustomerPjData,
+  upsertSocio,
 } from '@/repositories/customer-pj.repository'
-import { startPjOnboarding, syncPjToExternalApi } from '@/services/onboarding-pj.service'
-import { buildPjApiPayload, validatePjPayload } from '@/services/payload-builder.service'
+import {
+  listSociosPJ,
+  startPjOnboarding,
+  syncPjToExternalApi,
+} from '@/services/onboarding-pj.service'
+import {
+  buildPjApiPayload,
+  validatePjPayload,
+} from '@/services/payload-builder.service'
+import { eq } from 'drizzle-orm'
+import { type FastifyInstance } from 'fastify'
+import { z } from 'zod'
 
 export const onboardingPjRoutes = async (app: FastifyInstance) => {
   app.post(
@@ -87,7 +94,8 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
         if (data.nome_fantasia) pjData.nome_fantasia = data.nome_fantasia
         if (data.foundation_date) pjData.foundation_date = data.foundation_date
         if (data.cnae) pjData.cnae = data.cnae
-        if (data.cnae_description) pjData.cnae_description = data.cnae_description
+        if (data.cnae_description)
+          pjData.cnae_description = data.cnae_description
         if (data.capital_social) pjData.capital_social = data.capital_social
 
         if (Object.keys(pjData).length > 0) {
@@ -132,10 +140,7 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
         const { customerId } = request.params as { customerId: string }
         const data = request.body as any
 
-        await db
-          .update(customers)
-          .set(data)
-          .where(eq(customers.id, customerId))
+        await db.update(customers).set(data).where(eq(customers.id, customerId))
 
         return reply.send({
           success: true,
@@ -286,58 +291,52 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
     },
   )
 
-  app.get(
-    '/onboarding/pj/:customerId/validation',
-    async (request, reply) => {
-      try {
-        const { customerId } = request.params as { customerId: string }
+  app.get('/onboarding/pj/:customerId/validation', async (request, reply) => {
+    try {
+      const { customerId } = request.params as { customerId: string }
 
-        const payload = await buildPjApiPayload(customerId)
-        const validation = validatePjPayload(payload)
+      const payload = await buildPjApiPayload(customerId)
+      const validation = validatePjPayload(payload)
 
-        return reply.send({
-          success: true,
-          data: {
-            valid: validation.valid,
-            missing_fields: validation.missingFields,
-            payload_preview: Object.keys(payload),
-          },
-        })
-      } catch (error: any) {
-        console.error('Erro ao validar', error)
-        return reply.code(500).send({
-          success: false,
-          message: error.message || 'Erro ao validar',
-        })
-      }
-    },
-  )
+      return reply.send({
+        success: true,
+        data: {
+          valid: validation.valid,
+          missing_fields: validation.missingFields,
+          payload_preview: Object.keys(payload),
+        },
+      })
+    } catch (error: any) {
+      console.error('Erro ao validar', error)
+      return reply.code(500).send({
+        success: false,
+        message: error.message || 'Erro ao validar',
+      })
+    }
+  })
 
-  app.post(
-    '/onboarding/pj/:customerId/sync',
-    async (request, reply) => {
-      try {
-        const { customerId } = request.params as { customerId: string }
+  app.post('/onboarding/pj/:customerId/sync', async (request, reply) => {
+    try {
+      const { customerId } = request.params as { customerId: string }
 
-        const response = await syncPjToExternalApi(customerId)
+      const response = await syncPjToExternalApi(customerId)
 
-        return reply.send({
-          success: true,
-          data: {
-            status: response.status,
-            message: response.message,
-            pending_fields: response.pending_fields,
-          },
-        })
-      } catch (error: any) {
-        console.error('Erro ao sincronizar com API externa', error)
-        return reply.code(500).send({
-          success: false,
-          message: error.message || 'Erro ao sincronizar',
-        })
-      }
-    },
-  )
+      return reply.send({
+        success: true,
+        data: {
+          status: response.status,
+          message: response.message,
+          pending_fields: response.pending_fields,
+        },
+      })
+    } catch (error: any) {
+      console.error('Erro ao sincronizar com API externa', error)
+      return reply.code(500).send({
+        success: false,
+        message: error.message || 'Erro ao sincronizar',
+      })
+    }
+  })
 
   app.post(
     '/onboarding/pj/:customerId/complete',
@@ -462,7 +461,10 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
         if (data.complement) addressData.complement = data.complement
 
         if (Object.keys(addressData).length > 0) {
-          await db.update(customers).set(addressData).where(eq(customers.id, customerId))
+          await db
+            .update(customers)
+            .set(addressData)
+            .where(eq(customers.id, customerId))
         }
 
         if (data.documentos_empresa && data.documentos_empresa.length > 0) {
@@ -550,5 +552,22 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
       })
     }
   })
-}
 
+  app.get('/onboarding/pj/socios/:customerId', async (request, reply) => {
+    const { customerId } = request.params as { customerId: string }
+
+    const aggregate = await listSociosPJ(customerId)
+
+    if (!aggregate) {
+      return reply.code(404).send({
+        success: false,
+        message: 'Customer não encontrado',
+      })
+    }
+
+    return reply.send({
+      success: true,
+      data: aggregate,
+    })
+  })
+}
