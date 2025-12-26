@@ -1,5 +1,6 @@
 import { db } from '@/db'
 import { customers } from '@/db/schema'
+import { eq, sql } from 'drizzle-orm'
 import {
   addCustomerDocument,
   addSocioDocument,
@@ -16,7 +17,6 @@ import {
   buildPjApiPayload,
   validatePjPayload,
 } from '@/services/payload-builder.service'
-import { eq } from 'drizzle-orm'
 import { type FastifyInstance } from 'fastify'
 import { z } from 'zod'
 
@@ -67,7 +67,10 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
           nome_fantasia: z.string().optional(),
           email: z.string().email().optional(),
           phone_number: z.string().optional(),
-          foundation_date: z.string().optional(),
+          foundation_date: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD')
+            .optional(),
           cnae: z.string().optional(),
           cnae_description: z.string().optional(),
           capital_social: z.string().optional(),
@@ -87,16 +90,41 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
               phone_number: data.phone_number,
             })
             .where(eq(customers.id, customerId))
+          
+          // Atualiza o updated_at manualmente
+          await db.execute(
+            sql`UPDATE customers SET updated_at = now() WHERE id = ${customerId}`
+          )
         }
 
-        const pjData: any = {}
-        if (data.razao_social) pjData.razao_social = data.razao_social
-        if (data.nome_fantasia) pjData.nome_fantasia = data.nome_fantasia
-        if (data.foundation_date) pjData.foundation_date = data.foundation_date
-        if (data.cnae) pjData.cnae = data.cnae
+        // Prepara os dados da empresa, garantindo tipos corretos
+        const pjData: {
+          razao_social?: string
+          nome_fantasia?: string
+          foundation_date?: string
+          cnae?: string
+          cnae_description?: string
+          capital_social?: string
+        } = {}
+        
+        if (data.razao_social) pjData.razao_social = String(data.razao_social)
+        if (data.nome_fantasia) pjData.nome_fantasia = String(data.nome_fantasia)
+        if (data.foundation_date) {
+          // Garante que a data seja uma string no formato YYYY-MM-DD
+          const dateStr = String(data.foundation_date).trim()
+          // Valida o formato antes de salvar
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return reply.code(400).send({
+              success: false,
+              message: 'Formato de data inválido. Use YYYY-MM-DD',
+            })
+          }
+          pjData.foundation_date = dateStr
+        }
+        if (data.cnae) pjData.cnae = String(data.cnae)
         if (data.cnae_description)
-          pjData.cnae_description = data.cnae_description
-        if (data.capital_social) pjData.capital_social = data.capital_social
+          pjData.cnae_description = String(data.cnae_description)
+        if (data.capital_social) pjData.capital_social = String(data.capital_social)
 
         if (Object.keys(pjData).length > 0) {
           await upsertCustomerPjData(customerId, pjData)
@@ -350,7 +378,10 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
           nome_fantasia: z.string().optional(),
           email: z.string().email().optional(),
           phone_number: z.string().optional(),
-          foundation_date: z.string().optional(),
+          foundation_date: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD')
+            .optional(),
           cnae: z.string().optional(),
           cnae_description: z.string().optional(),
           capital_social: z.string().optional(),

@@ -8,6 +8,7 @@ import {
   individualRegisterStep1,
 } from '@/services/g8.service'
 import {
+  consultaCep,
   deletarSocio,
   getUserOnboardingSituation,
   registerStep2,
@@ -17,6 +18,7 @@ import {
   registerStepStep3_2,
   resendCode,
 } from '@/services/onboarding.service'
+import { getAppTokenValue } from '@/utils/cronos-token'
 import { FastifyInstance } from 'fastify'
 import { Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
@@ -98,7 +100,6 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
   app.post('/register/step-2', async (request, reply) => {
     try {
       const data = registerStep2Schema.parse(request.body)
-
       const result = await registerStep2(data)
 
       return reply.code(201).send({
@@ -258,6 +259,7 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
     }
   })
 
+  //3.1.1 apenas pj
   app.delete('/onboarding/step-3/', async (request, reply) => {
     try {
       const { individual_id, id_socio } = request.query as {
@@ -271,6 +273,39 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
       })
     } catch (error) {
       console.error('Erro ao deletar socio', error)
+    }
+  })
+
+  app.get('/onboarding/step-3/:individual_id', async (request, reply) => {
+    try {
+      const { individual_id } = request.params as { individual_id: string }
+      const { id_socio } = request.body as { id_socio: string }
+
+      const socios = await registerStepStep3_2(individual_id, id_socio)
+      return reply.send({
+        success: true,
+        data: socios,
+      })
+    } catch (error) {
+      console.error('Erro ao obter lista de socios', error)
+      return reply.code(500).send({
+        success: false,
+        message: 'Erro interno no servidor',
+      })
+    }
+  })
+
+  app.get(`/consultcep/:cep`, async (request, reply) => {
+    try {
+      const { cep } = request.params as { cep: string }
+      const response = await consultaCep(cep)
+      const data = await response.data
+      return reply.send({
+        success: true,
+        data,
+      })
+    } catch (error) {
+      console.error('Erro ao obter dados do cep', error)
     }
   })
 }

@@ -5,9 +5,9 @@ import { db } from '@/db'
 import { customers, onboardingStates } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { updateOnboardingProgress } from '@/repositories/customer-pj.repository'
-import { listCustomerPartners } from '@/repositories/customer-partners-repository'
 import { findCustomerById } from '@/repositories/customer.repository'
 import { CustomerNotFoundError } from '@/errors/customer-errors'
+import { listCustomerPartners } from '@/repositories/customer-partners-repository'
 
 function parseDateLike(value: unknown): Date | null {
   if (value == null) return null
@@ -42,7 +42,7 @@ function sanitizeDatesForDb(value: any): any {
         out[k] = v
         continue
       }
-      
+
       if (
         typeof v === 'number' ||
         (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))
@@ -54,7 +54,6 @@ function sanitizeDatesForDb(value: any): any {
         }
       }
 
-      //corrção da data
       const keyLooksLikeDate = /(date|_at)$/i.test(k)
       if (keyLooksLikeDate) {
         const parsed = parseDateLike(v)
@@ -82,9 +81,18 @@ function normalizeDatesForApi(value: any): any {
         continue
       }
       const keyLooksLikeDate = /(date|_at)$/i.test(k)
-      if (keyLooksLikeDate && v instanceof Date) {
-        out[k] = v.toISOString()
-        continue
+      if (keyLooksLikeDate) {
+        if (v instanceof Date) {
+          out[k] = v.toISOString()
+          continue
+        }
+        if (typeof v === 'string') {
+          const parsed = parseDateLike(v)
+          if (parsed) {
+            out[k] = parsed.toISOString()
+            continue
+          }
+        }
       }
       out[k] = normalizeDatesForApi(v)
     }
@@ -93,24 +101,22 @@ function normalizeDatesForApi(value: any): any {
   return value
 }
 
-
 //verifica o token
 
-async function ensureAppToken() {
-  try {
-    const response = await getAppToken()
-    if (response.data?.token) {
-      setAppToken(response.data.token)
-    }
-  } catch (error) {
-    console.error('Erro ao obter token da aplicação', error)
-    throw error
-  }
-}
-
+// async function ensureAppToken() {
+//   try {
+//     const response = await getAppToken()
+//     if (response.data?.token) {
+//       setAppToken(response.data.token)
+//     }
+//   } catch (error) {
+//     console.error('Erro ao obter token da aplicação', error)
+//     throw error
+//   }
+// }
 
 export async function startPjOnboarding(document: string) {
-  await ensureAppToken()
+  // await ensureAppToken()
 
   const response = await individualRegister({ document })
 
@@ -147,10 +153,7 @@ export async function startPjOnboarding(document: string) {
   }
 }
 
-
- //Envia dados completos do PJ pra API
 export async function syncPjToExternalApi(customerId: string) {
-  await ensureAppToken()
 
   const payload = await buildPjApiPayload(customerId)
 
@@ -228,15 +231,11 @@ export async function syncPjToExternalApi(customerId: string) {
 }
 
 export async function listSociosPJ(customerId: string) {
-  await ensureAppToken()
-
   const customer = await findCustomerById(customerId)
 
   if (!customer) {
     throw CustomerNotFoundError()
   }
 
-  const response = await listCustomerPartners(customer.id)
-
-  return response
+  return listCustomerPartners(customer.id)
 }

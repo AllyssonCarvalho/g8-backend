@@ -39,6 +39,10 @@ export const getUserOnboardingSituation = async (document: string) => {
 
 export const registerStep2 = async (data: RegisterStep2Data) => {
   try {
+    if (!data.individual_id) {
+      throw CustomerNotFoundError()
+    }
+
     const customer = await findCustomerByIndividualId(data.individual_id)
 
     if (!customer) {
@@ -62,6 +66,7 @@ export const registerStep2 = async (data: RegisterStep2Data) => {
 export const registerStep2_1 = async (data: RegisterStep2Data) => {
   try {
     const response = await http.put('/v1/register/individual/step2', data)
+    console.log('RESPOSTA DO SMS', response)
     return response.data
   } catch (error) {
     console.error('Erro ao registrar step 2', error)
@@ -87,6 +92,15 @@ export const resendCode = async (individual_id: string) => {
     return response.data
   } catch (error) {
     console.error('Erro ao reenviar código', error)
+    throw error
+  }
+}
+export const consultaCep = async (cep: string) => {
+  try {
+    const response = await http.get(`/v1/register/consultcep/${cep}`)
+    return response
+  } catch (error) {
+    console.error('Erro ao consultar cep', error)
     throw error
   }
 }
