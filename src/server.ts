@@ -1,4 +1,5 @@
 import { fastifyCors } from '@fastify/cors'
+import fastifyMultipart from '@fastify/multipart'
 import { fastifySwagger } from '@fastify/swagger'
 import ScalarApiReference from '@scalar/fastify-api-reference'
 import { fastify } from 'fastify'
@@ -8,9 +9,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod'
-import { env } from 'process'
 import { registerRoutes } from './routes'
-import fastifyMultipart from '@fastify/multipart'
 
 export async function buildServer() {
   const app = fastify().withTypeProvider<ZodTypeProvider>()

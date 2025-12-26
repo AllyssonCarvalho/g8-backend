@@ -5,6 +5,9 @@ import { db } from '@/db'
 import { customers, onboardingStates } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { updateOnboardingProgress } from '@/repositories/customer-pj.repository'
+import { findCustomerById } from '@/repositories/customer.repository'
+import { CustomerNotFoundError } from '@/errors/customer-errors'
+import { listCustomerPartners } from '@/repositories/customer-partners-repository'
 
 function parseDateLike(value: unknown): Date | null {
   if (value == null) return null
@@ -51,7 +54,6 @@ function sanitizeDatesForDb(value: any): any {
         }
       }
 
-      //corrção da data
       const keyLooksLikeDate = /(date|_at)$/i.test(k)
       if (keyLooksLikeDate) {
         const parsed = parseDateLike(v)
@@ -192,9 +194,7 @@ export async function startPjOnboarding(document: string) {
   }
 }
 
-//Envia dados completos do PJ pra API
 export async function syncPjToExternalApi(customerId: string) {
-  // await ensureAppToken()
 
   const payload = await buildPjApiPayload(customerId)
 
@@ -269,4 +269,14 @@ export async function syncPjToExternalApi(customerId: string) {
     .where(eq(customers.id, customerId))
 
   return response
+}
+
+export async function listSociosPJ(customerId: string) {
+  const customer = await findCustomerById(customerId)
+
+  if (!customer) {
+    throw CustomerNotFoundError()
+  }
+
+  return listCustomerPartners(customer.id)
 }

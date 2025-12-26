@@ -81,9 +81,147 @@ export const registerStep3Schema = z.object({
   document_type: z.string(),
 })
 
+export const registerStep4Schema = z.object({
+   individual_id: z
+    .string()
+    .uuid({ message: 'individual_id deve ser um UUID válido' }),
+
+  document_name: z
+    .string()
+    .min(1, 'document_name é obrigatório'),
+
+  mother_name: z
+    .string()
+    .min(1, 'mother_name é obrigatório'),
+
+  father_name: z
+    .string()
+    .min(1, 'father_name é obrigatório'),
+
+  gender: z.enum(['M', 'F'], {
+    message: 'gender deve ser M ou F',
+  }),
+
+  birth_date: z
+    .string()
+    .refine(
+      (date) => !Number.isNaN(Date.parse(date)),
+      'birth_date deve ser uma data válida (YYYY-MM-DD)',
+    ),
+
+  marital_status: z
+    .number()
+    .int()
+    .min(0, 'marital_status inválido'),
+
+  nationality: z
+    .string()
+    .min(1, 'nationality é obrigatório'),
+
+  nationality_state: z
+    .string()
+    .length(2, 'nationality_state deve ter 2 caracteres'),
+
+  document_number: z
+    .string()
+    .min(1, 'document_number é obrigatório'),
+
+  document_state: z
+    .string()
+    .length(2, 'document_state deve ter 2 caracteres'),
+
+  issuance_date: z
+    .string()
+    .refine(
+      (date) => !Number.isNaN(Date.parse(date)),
+      'issuance_date deve ser uma data válida (YYYY-MM-DD)',
+    ),
+
+  document_issuance: z
+    .string()
+    .min(1, 'document_issuance é obrigatório'),
+
+  pep: z
+    .number()
+    .int()
+    .min(0)
+    .max(1),
+
+  pep_since: z
+    .string()
+    .optional()
+    .nullable(),
+
+  renda_mensal: z
+    .number()
+    .positive('renda_mensal deve ser maior que zero'),
+})
+
+export const registerStep5Schema = z.object({
+  individual_id: z.string(),
+  image_type: z.string(),
+})
+
+export const registerStep6Schema= z.object({
+  individual_id: z
+    .string()
+    .uuid('individual_id deve ser um UUID válido'),
+
+  postal_code: z
+    .string()
+    .regex(/^\d{8}$/, 'postal_code deve conter 8 dígitos numéricos'),
+
+  address_type_id: z
+    .union([
+      z.string().regex(/^\d+$/, 'address_type_id deve ser numérico'),
+      z.number().int().positive(),
+    ])
+    .transform(Number),
+
+  street: z
+    .string()
+    .min(1, 'street é obrigatório'),
+
+  number: z
+    .string()
+    .min(1, 'number é obrigatório'),
+
+  neighborhood: z
+    .string()
+    .min(1, 'neighborhood é obrigatório'),
+
+  state: z
+    .string()
+    .length(2, 'state deve ter 2 caracteres'),
+
+  city: z
+    .string()
+    .min(1, 'city é obrigatório'),
+
+  country: z
+    .string()
+    .length(2, 'country deve ter 2 caracteres'),
+
+  complement: z
+    .string()
+    .optional()
+    .nullable()
+    .default(''),
+})
+
+export const registerStep7Schema = z.object({
+  individual_id: z.string().uuid({ message: 'individual_id deve ser um UUID válido' }),
+  password: z.string().min(6, { message: 'password deve ter pelo menos 6 caracteres' }),
+  confirm_password: z.string().min(6, { message: 'confirm_password deve ter pelo menos 6 caracteres' }),
+})
+
 export type RegisterStep1Data = z.infer<typeof registerStep1Schema>
 export type RegisterStep2Data = z.infer<typeof registerStep2Schema>
 export type RegisterStep3Data = z.infer<typeof registerStep3Schema>
+export type RegisterStep4Data = z.infer<typeof registerStep4Schema>
+export type RegisterStep5Data = z.infer<typeof registerStep5Schema>
+export type RegisterStep6Data = z.infer<typeof registerStep6Schema>
+export type RegisterStep7Data = z.infer<typeof registerStep7Schema>
 
 export type OnboardingResponse = z.infer<typeof onboardingResponseSchema>
 

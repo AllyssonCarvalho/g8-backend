@@ -1,8 +1,18 @@
-
-import { OnboardingResponse, onboardingResponseSchema } from '@/schemas/cronos/g8.schemas'
-
-import { http } from '../libs/http-client'
+import { CustomerAlreadyExistsError, CustomerNotFoundError } from '@/errors/customer-errors'
+import { IndividualRegisterFailedError } from '@/errors/onboarding-error'
+import {
+  findCustomerByDocument,
+  findCustomerByIndividualId,
+  updateCustomer,
+} from '@/repositories/customer.repository'
+import {
+  OnboardingResponse,
+  onboardingResponseSchema,
+  RegisterStep1Data,
+} from '@/schemas/cronos/g8.schemas'
 import * as httpClientModule from '../libs/http-client'
+import { http } from '../libs/http-client'
+import { createCustomerPf } from '@/repositories/customer-pf-repository'
 
 console.log('[g8.service] http-client module =', httpClientModule)
 
@@ -10,7 +20,7 @@ export const getAppToken = async () => {
   console.log('URL =', http.defaults)
   try {
     const response = await http.get('/v1/application/token')
-    console.log("Response =", response.data)
+    console.log('Response =', response.data)
     return response
   } catch (error) {
     console.error('Erro ao chamar API externa', error)
@@ -31,18 +41,25 @@ export const authCustomerToken = async (pub: string, secret: string) => {
   }
 }
 
-export const individualRegister = async (
-  data: { document: string },
-): Promise<OnboardingResponse> => {
+export const individualRegister = async (data: {
+  document: string
+}): Promise<OnboardingResponse> => {
+  const customerExist = await findCustomerByDocument(data.document)
+
+  if (customerExist) {
+    throw CustomerAlreadyExistsError()
+  }
+
   try {
     const response = await http.post('/v1/register/individual', {
       document: data.document,
     })
-    const parsed = onboardingResponseSchema.parse(response.data)
-    return parsed
+
+    return onboardingResponseSchema.parse(response.data)
   } catch (error) {
     console.error('Erro ao cadastrar individual', error)
-    throw error
+
+    throw IndividualRegisterFailedError(error)
   }
 }
 
@@ -80,14 +97,30 @@ export const updateUserPJ = async (
   }
 }
 
-
-export const individualRegisterStep1 = async (
-  data: unknown,
-): Promise<OnboardingResponse> => {
+export const individualRegisterStep1 = async (data: RegisterStep1Data) => {
   try {
+    const customer = await findCustomerByIndividualId(data.individual_id)
+
+    if (!customer) {
+      throw CustomerNotFoundError()
+    }
+    const updatedCustomer = await updateCustomer(customer!.id, {
+      ...data,
+      current_step: 2,
+      updated_at: new Date(),
+    })
+
+    await createCustomerPf({
+      customer_id: customer.id,
+      ...data,
+      name: data.full_name,
+      full_name: data.full_name,
+    })
+
     const response = await http.post('/v1/register/individual/step1', data)
     const parsed = onboardingResponseSchema.parse(response.data)
-    return parsed
+
+    return { parsed, updatedCustomer }
   } catch (error) {
     console.error('Erro no step1 do registro individual', error)
     throw error

@@ -12,6 +12,7 @@ WORKDIR /app
 # copie apenas o necessário primeiro (melhor cache)
 COPY package.json pnpm-lock.yaml ./
 
+
 # instala dependências + devDependencies
 RUN pnpm install
 
@@ -20,4 +21,5 @@ COPY . .
 
 EXPOSE 3333
 
-CMD ["pnpm", "dev"]
+
+CMD sh -c "pnpm drizzle-kit migrate && pnpm dev"

@@ -1,16 +1,15 @@
-import { type FastifyInstance } from 'fastify'
-import { z } from 'zod'
 import { db } from '@/db'
 import { customers } from '@/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import {
-  upsertCustomerPjData,
-  upsertSocio,
   addCustomerDocument,
   addSocioDocument,
   getCustomerPjById,
+  upsertCustomerPjData,
+  upsertSocio,
 } from '@/repositories/customer-pj.repository'
 import {
+  listSociosPJ,
   startPjOnboarding,
   syncPjToExternalApi,
 } from '@/services/onboarding-pj.service'
@@ -18,6 +17,8 @@ import {
   buildPjApiPayload,
   validatePjPayload,
 } from '@/services/payload-builder.service'
+import { type FastifyInstance } from 'fastify'
+import { z } from 'zod'
 
 export const onboardingPjRoutes = async (app: FastifyInstance) => {
   app.post(
@@ -581,5 +582,23 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
         message: error.message || 'Erro ao buscar customer',
       })
     }
+  })
+
+  app.get('/onboarding/pj/socios/:customerId', async (request, reply) => {
+    const { customerId } = request.params as { customerId: string }
+
+    const aggregate = await listSociosPJ(customerId)
+
+    if (!aggregate) {
+      return reply.code(404).send({
+        success: false,
+        message: 'Customer não encontrado',
+      })
+    }
+
+    return reply.send({
+      success: true,
+      data: aggregate,
+    })
   })
 }
