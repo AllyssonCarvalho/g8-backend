@@ -227,54 +227,41 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
   })
 
   app.post('/onboarding/step-5', async (request, reply) => {
+    try {
       const parts = request.parts()
-
-      const fields: Record<string, any> = {}
-      let fileBase64: string | null = null
-      let fileMeta: {
-        filename: string
-        mimetype: string
-      } | null = null
+      const formData = new FormData()
 
       for await (const part of parts) {
         if (part.type === 'file') {
-          const chunks: Buffer[] = []
-
+          const buffers: Buffer[] = []
           for await (const chunk of part.file) {
-            chunks.push(chunk)
+            buffers.push(chunk)
           }
-
-          const buffer = Buffer.concat(chunks)
-          fileBase64 = buffer.toString('base64')
-
-          fileMeta = {
+          const buffer = Buffer.concat(buffers)
+          formData.append(part.fieldname, buffer, {
             filename: part.filename,
-            mimetype: part.mimetype,
-          }
+            contentType: part.mimetype,
+          })
         } else {
-          fields[part.fieldname] = part.value
+          formData.append(part.fieldname, part.value)
         }
       }
 
-      if (!fileBase64 || !fileMeta) {
-        return reply.code(400).send({ error: 'Arquivo é obrigatório' })
-      }
-
-      const data = registerStep5Schema.parse(fields)
-
-      const result = await registerStep5({
-        ...data,
-        fileBase64,
-        fileMimeType: fileMeta.mimetype,
-        fileName: fileMeta.filename,
+      const response = await http.post('/v1/register/individual/step5', formData, {
+        headers: formData.getHeaders(),
+        maxBodyLength: Infinity,
       })
 
-      return reply.code(201).send({
-        success: true,
-        message: 'Step 5 realizado com sucesso',
-        data: result.data,
-        customer: result.updatedCustomer
+      return reply.code(201).send(response.data)
+    } catch (error: any) {
+      const data = error?.response?.data
+      console.error('Erro ao enviar step5 PF', data || error)
+      return reply.code(error.response?.status || 500).send({
+        success: false,
+        message: data?.message || 'Erro ao enviar step5 PF',
+        errors: data?.errors,
       })
+    }
   })
 
   app.post('/onboarding/step-6', async (request, reply) => {
