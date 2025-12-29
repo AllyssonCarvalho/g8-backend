@@ -14,6 +14,7 @@ import {
 import {
   individualRegister,
   individualRegisterStep1,
+  http,
 } from '@/services/g8.service'
 import {
   getUserOnboardingSituation,
@@ -28,6 +29,7 @@ import {
 } from '@/services/onboarding.service'
 import { consultaCep } from '@/services/onboarding.service'
 import { FastifyInstance } from 'fastify'
+import FormData from 'form-data'
 import z from 'zod'
 
 export const onboardingRoutes = async (app: FastifyInstance) => {
@@ -175,6 +177,43 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
     
   })
 
+  app.post('/onboarding/step-3/photoselfie', async (request, reply) => {
+    try {
+      const parts = request.parts()
+      const formData = new FormData()
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const buffers: Buffer[] = []
+          for await (const chunk of part.file) {
+            buffers.push(chunk)
+          }
+          const buffer = Buffer.concat(buffers)
+          formData.append(part.fieldname, buffer, {
+            filename: part.filename,
+            contentType: part.mimetype,
+          })
+        } else {
+          formData.append(part.fieldname, part.value)
+        }
+      }
+
+      const response = await http.post('/v1/register/individual/step3/photoselfie', formData, {
+        headers: formData.getHeaders(),
+        maxBodyLength: Infinity,
+      })
+      return reply.send(response.data)
+    } catch (error: any) {
+      const data = error?.response?.data
+      console.error('Erro ao enviar selfie step3 PF', data || error)
+      return reply.code(error.response?.status || 500).send({
+        success: false,
+        message: data?.message || 'Erro ao enviar selfie step3 PF',
+        errors: data?.errors,
+      })
+    }
+  })
+
   app.post('/onboarding/step-4', async (request, reply) => {
     const data = registerStep4Schema.parse(request.body)
     console.log("DATA STEP 4: ", data);
@@ -262,7 +301,6 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
     })
   })
 
-  // CEP (g8)
   app.get('/consultcep/:cep', async (request, reply) => {
     try {
       const { cep } = request.params as { cep: string }

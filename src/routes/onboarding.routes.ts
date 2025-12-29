@@ -6,6 +6,7 @@ import {
 import {
   individualRegister,
   individualRegisterStep1,
+  http,
 } from '@/services/g8.service'
 import {
   consultaCep,
@@ -22,6 +23,7 @@ import { getAppTokenValue } from '@/utils/cronos-token'
 import { FastifyInstance } from 'fastify'
 import { Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+import FormData from 'form-data'
 import z from 'zod'
 
 export const onboardingRoutes = async (app: FastifyInstance) => {
@@ -226,6 +228,43 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
     } catch (error) {
       console.error('Erro no step-3 upload', error)
       return reply.code(500).send({ error: 'Erro interno' })
+    }
+  })
+
+  app.post('/onboarding/step-3/photoselfie', async (request, reply) => {
+    try {
+      const parts = request.parts()
+      const formData = new FormData()
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const buffers: Buffer[] = []
+          for await (const chunk of part.file) {
+            buffers.push(chunk)
+          }
+          const buffer = Buffer.concat(buffers)
+          formData.append(part.fieldname, buffer, {
+            filename: part.filename,
+            contentType: part.mimetype,
+          })
+        } else {
+          formData.append(part.fieldname, part.value)
+        }
+      }
+
+      const response = await http.post('/v1/register/individual/step3/photoselfie', formData, {
+        headers: formData.getHeaders(),
+        maxBodyLength: Infinity,
+      })
+      return reply.send(response.data)
+    } catch (error: any) {
+      const data = error?.response?.data
+      console.error('Erro ao enviar selfie step3 PF', data || error)
+      return reply.code(error.response?.status || 500).send({
+        success: false,
+        message: data?.message || 'Erro ao enviar selfie step3 PF',
+        errors: data?.errors,
+      })
     }
   })
 
