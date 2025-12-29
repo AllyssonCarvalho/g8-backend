@@ -68,7 +68,6 @@ export const registerStep2 = async (data: RegisterStep2Data) => {
 export const registerStep2_1 = async (data: RegisterStep2Data) => {
   try {
     const response = await http.put('/v1/register/individual/step2', data)
-    console.log('RESPOSTA DO SMS', response)
     return response.data
   } catch (error) {
     console.error('Erro ao registrar step 2', error)
@@ -99,7 +98,13 @@ export const resendCode = async (individual_id: string) => {
 }
 export const consultaCep = async (cep: string) => {
   try {
-    const response = await http.get(`/v1/register/consultcep/${cep}`)
+    console.log("CEP CHAMADO CHAMADO CEP: ", cep);
+    const tokenResp = await http.get('/v1/application/token')
+    const token = tokenResp?.data?.token
+
+    const response = await http.get(`/v1/register/consultcep/${cep}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
     return response
   } catch (error) {
     console.error('Erro ao consultar cep', error)
@@ -116,12 +121,15 @@ export const registerStep3 = async (data: RegisterStep3Input) => {
   try {
     const formData = new FormData()
 
-    const fileBlob = base64ToBlob(data.fileBase64!, data.fileMimeType!)
+    const fileBlob = base64ToBlob(
+      data.fileBase64!,
+      data.fileMimeType || 'image/jpeg',
+    )
 
     formData.append('individual_id', data.individual_id)
     formData.append('image_type', data.image_type)
     formData.append('document_type', data.document_type)
-    formData.append('file', fileBlob, data.fileName)
+    formData.append('file', fileBlob, data.fileName || 'document.jpg')
 
     const customer = await findCustomerByIndividualId(data.individual_id)
 
@@ -154,7 +162,10 @@ export const registerStep3 = async (data: RegisterStep3Input) => {
 
     return { data: response.data, updatedCustomer }
   } catch (error) {
-    console.error('Erro ao registrar step 3', error)
+    // log detalhado para depurar validação 400
+    // @ts-ignore
+    const data = error?.response?.data
+    console.error('Erro ao registrar step 3', data || error)
     throw error
   }
 }
@@ -273,6 +284,11 @@ export const registerStep5 = async (data: RegisterStep5Input) => {
     return { data: response.data, updatedCustomer }
   } catch (error) {
     console.error('Erro ao registrar step 5', error)
+    // @ts-ignore
+    if (error?.response?.data) {
+      // @ts-ignore
+      console.error('Step5 response data:', error.response.data)
+    }
     throw error
   }
 }
@@ -301,7 +317,6 @@ export const registerStep6 = async (data: RegisterStep6Data) => {
 
 export const registerStep7 = async (data: RegisterStep7Data) => {
   try {
-  
     const customer = await findCustomerByIndividualId(data.individual_id)
 
 
@@ -319,10 +334,20 @@ export const registerStep7 = async (data: RegisterStep7Data) => {
       ...data,
     })
 
-    const response = await http.post('/v1/register/individual/step7', data)
+    const payload = {
+      ...data,
+      password_confirmation: data.confirm_password,
+    }
+
+    const response = await http.post('/v1/register/individual/step7', payload)
     return { data: response.data, updatedUser }
   } catch (error) {
-    console.error('Erro ao registrar step 7', error)
+    const respData = (error as any)?.response?.data
+    console.error('Erro ao registrar step 7', {
+      status: (error as any)?.response?.status,
+      data: respData,
+      errors: respData?.errors,
+    })
     throw error
   }
 }

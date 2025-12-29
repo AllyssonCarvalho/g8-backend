@@ -26,6 +26,7 @@ import {
   registerStep7,
   resendCode,
 } from '@/services/onboarding.service'
+import { consultaCep } from '@/services/onboarding.service'
 import { FastifyInstance } from 'fastify'
 import z from 'zod'
 
@@ -66,7 +67,7 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
 
   app.post('/onboarding/step-1', async (request, reply) => {
       const data = registerStep1Schema.parse(request.body)
-
+      console.log("DATA STEP 1: ", data);
 
       const {
         parsed, updatedCustomer
@@ -176,7 +177,7 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
 
   app.post('/onboarding/step-4', async (request, reply) => {
     const data = registerStep4Schema.parse(request.body)
-
+    console.log("DATA STEP 4: ", data);
     const { data: result, user } = await registerStep4(data)
     return reply.code(201).send({
       success: true,
@@ -259,5 +260,24 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
       data: result,
       updatedUser
     })
+  })
+
+  // CEP (g8)
+  app.get('/consultcep/:cep', async (request, reply) => {
+    try {
+      const { cep } = request.params as { cep: string }
+      const response = await consultaCep(cep)
+      const data = await response.data
+      return reply.send({
+        success: true,
+        data,
+      })
+    } catch (error) {
+      console.error('Erro ao obter dados do cep', error)
+      return reply.code(404).send({
+        success: false,
+        message: 'CEP não encontrado',
+      })
+    }
   })
 }

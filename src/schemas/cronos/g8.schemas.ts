@@ -172,10 +172,10 @@ export const registerStep7Schema = z.object({
     .uuid({ message: 'individual_id deve ser um UUID válido' }),
   password: z
     .string()
-    .min(6, { message: 'password deve ter pelo menos 6 caracteres' }),
+    .min(8, { message: 'password deve ter pelo menos 8 caracteres' }),
   confirm_password: z
     .string()
-    .min(6, { message: 'confirm_password deve ter pelo menos 6 caracteres' }),
+    .min(8, { message: 'confirm_password deve ter pelo menos 8 caracteres' }),
 })
 
 export const registerStep1PJSchema = z.object({

@@ -42,33 +42,33 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
     }
   })
 
-  app.post('/onboarding/start', async (request, reply) => {
-    try {
-      const { document } = request.body as { document: string }
+  // app.post('/onboarding/start', async (request, reply) => {
+  //   try {
+  //     const { document } = request.body as { document: string }
 
-      const result = await individualRegister({ document })
+  //     const result = await individualRegister({ document })
 
-      return reply.code(201).send({
-        success: true,
-        message: 'Onboarding iniciado com sucesso',
-        data: result,
-      })
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.code(400).send({
-          success: false,
-          message: 'Dados inválidos',
-          errors: error.flatten().fieldErrors,
-        })
-      }
+  //     return reply.code(201).send({
+  //       success: true,
+  //       message: 'Onboarding iniciado com sucesso',
+  //       data: result,
+  //     })
+  //   } catch (error) {
+  //     if (error instanceof z.ZodError) {
+  //       return reply.code(400).send({
+  //         success: false,
+  //         message: 'Dados inválidos',
+  //         errors: error.flatten().fieldErrors,
+  //       })
+  //     }
 
-      console.error('Erro ao iniciar onboarding', error)
-      return reply.code(500).send({
-        success: false,
-        message: 'Erro interno no servidor',
-      })
-    }
-  })
+  //     console.error('Erro ao iniciar onboarding', error)
+  //     return reply.code(500).send({
+  //       success: false,
+  //       message: 'Erro interno no servidor',
+  //     })
+  //   }
+  // })
 
   app.post('/register/step-1', async (request, reply) => {
     try {
@@ -184,21 +184,19 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
       const parts = request.parts()
 
       const fields: Record<string, any> = {}
-      let file: any = null
+      let fileBuffer: Buffer | null = null
+      let fileName: string | undefined
+      let fileMimeType: string | undefined
 
       for await (const part of parts) {
         if (part.type === 'file') {
-          file = part
-
-          // ⬇️ CONSUME O STREAM (IMPORTANTE)
-          await pipeline(
-            part.file,
-            new Writable({
-              write(_chunk, _enc, cb) {
-                cb()
-              },
-            }),
-          )
+          const buffers: Buffer[] = []
+          for await (const chunk of part.file) {
+            buffers.push(chunk)
+          }
+          fileBuffer = Buffer.concat(buffers)
+          fileName = part.filename
+          fileMimeType = part.mimetype
         } else {
           fields[part.fieldname] = part.value
         }
@@ -206,9 +204,18 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
 
       const data = registerStep3Schema.parse(fields)
 
+      if (!fileBuffer) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Arquivo não enviado',
+        })
+      }
+
       const result = await registerStep3({
         ...data,
-        file,
+        fileBase64: fileBuffer.toString('base64'),
+        fileMimeType: fileMimeType || 'image/jpeg',
+        fileName: fileName || 'document.jpg',
       })
 
       return reply.code(201).send({
@@ -217,6 +224,7 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
         data: result,
       })
     } catch (error) {
+      console.error('Erro no step-3 upload', error)
       return reply.code(500).send({ error: 'Erro interno' })
     }
   })
@@ -298,6 +306,7 @@ export const onboardingRoutes = async (app: FastifyInstance) => {
   app.get(`/consultcep/:cep`, async (request, reply) => {
     try {
       const { cep } = request.params as { cep: string }
+      console.log("CEP CHAMADO CHAMADO CEP NO ROUTES BACKEND: ", cep);
       const response = await consultaCep(cep)
       const data = await response.data
       return reply.send({

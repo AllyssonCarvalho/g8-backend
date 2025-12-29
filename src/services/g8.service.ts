@@ -12,7 +12,7 @@ import {
 } from '@/schemas/cronos/g8.schemas'
 import * as httpClientModule from '../libs/http-client'
 import { http } from '../libs/http-client'
-import { createCustomerPf } from '@/repositories/customer-pf-repository'
+import { upsertCustomerPf } from '@/repositories/customer-pf-repository'
 
 console.log('[g8.service] http-client module =', httpClientModule)
 
@@ -97,6 +97,9 @@ export const updateUserPJ = async (
   }
 }
 
+// reexport http for internal consumers
+export { http }
+
 export const individualRegisterStep1 = async (data: RegisterStep1Data) => {
   try {
     const customer = await findCustomerByIndividualId(data.individual_id)
@@ -110,8 +113,7 @@ export const individualRegisterStep1 = async (data: RegisterStep1Data) => {
       updated_at: new Date(),
     })
 
-    await createCustomerPf({
-      customer_id: customer.id,
+    await upsertCustomerPf(customer.id, {
       ...data,
       name: data.full_name,
       full_name: data.full_name,

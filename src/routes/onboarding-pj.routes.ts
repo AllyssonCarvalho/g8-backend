@@ -13,6 +13,7 @@ import {
   startPjOnboarding,
   syncPjToExternalApi,
 } from '@/services/onboarding-pj.service'
+import { http } from '@/services/g8.service'
 import {
   buildPjApiPayload,
   validatePjPayload,
@@ -57,6 +58,229 @@ export const onboardingPjRoutes = async (app: FastifyInstance) => {
       }
     },
   )
+
+  app.post('/onboarding/pj/step1', async (request, reply) => {
+    try {
+      const payload = request.body
+      const response = await http.post('/v1/register/individual/step1', payload)
+      return reply.send(response.data)
+    } catch (error) {
+      // @ts-ignore
+      const data = error?.response?.data
+      console.error('Erro ao enviar step1 PJ')
+      console.error('Payload recebido:', request.body)
+      console.error('Resposta externa:', data ? JSON.stringify(data, null, 2) : error)
+      return reply.code(500).send({
+        success: false,
+        message: data?.message || 'Erro ao enviar step1 PJ',
+        errors: data?.errors,
+        raw: data,
+      })
+    }
+  })
+
+  app.post('/onboarding/pj/step3', async (request, reply) => {
+    try {
+      const payload = request.body
+      const response = await http.post('/v1/register/individual/step3', payload)
+      return reply.send(response.data)
+    } catch (error) {
+      console.error('Erro ao enviar step3 PJ', error)
+      return reply.code(500).send({
+        success: false,
+        message: 'Erro ao enviar step3 PJ',
+      })
+    }
+  })
+
+  app.post('/onboarding/pj/step3/documentpersonal', async (request, reply) => {
+    try {
+      const parts = request.parts()
+      const formData = new FormData()
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const buffers = []
+          for await (const chunk of part.file) {
+            buffers.push(chunk)
+          }
+          const buffer = Buffer.concat(buffers)
+          formData.append(part.fieldname, buffer, {
+            filename: part.filename,
+            contentType: part.mimetype,
+          })
+        } else {
+          formData.append(part.fieldname, part.value)
+        }
+      }
+
+      const response = await http.post('/v1/register/individual/step3/documentpernonal', formData, {
+        headers: formData.getHeaders(),
+        maxBodyLength: Infinity,
+      })
+      return reply.send(response.data)
+    } catch (error) {
+      console.error('Erro ao enviar step3_1 PJ', error)
+      return reply.code(500).send({
+        success: false,
+        message: 'Erro ao enviar step3_1 PJ',
+      })
+    }
+  })
+
+  
+  app.post('/onboarding/pj/step4', async (request, reply) => {
+    try {
+      const parts = request.parts()
+      const formData = new FormData()
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const buffers: Buffer[] = []
+          for await (const chunk of part.file) {
+            buffers.push(chunk)
+          }
+          const buffer = Buffer.concat(buffers)
+          formData.append(part.fieldname, buffer, {
+            filename: part.filename,
+            contentType: part.mimetype,
+          })
+        } else {
+          formData.append(part.fieldname, part.value)
+        }
+      }
+
+      const response = await http.post('/v1/register/individual/step4', formData, {
+        headers: formData.getHeaders(),
+        maxBodyLength: Infinity,
+      })
+      return reply.send(response.data)
+    } catch (error) {
+      console.error('Erro ao enviar step4 PJ', error)
+      return reply.code(500).send({
+        success: false,
+        message: 'Erro ao enviar step4 PJ',
+      })
+    }
+  })
+
+  app.post('/onboarding/pj/step5', async (request, reply) => {
+    try {
+      const payload = request.body
+      const response = await http.post('/v1/register/individual/step5', payload)
+      return reply.send(response.data)
+    } catch (error: any) {
+      const data = error?.response?.data
+      console.error('Erro ao enviar step5 PJ', data || error)
+      return reply.code(error.response?.status || 500).send({
+        success: false,
+        message: data?.message || 'Erro ao enviar step5 PJ',
+        errors: data?.errors,
+      })
+    }
+  })
+
+  app.post('/onboarding/pj/step6', async (request, reply) => {
+    try {
+      const payload = request.body
+      const response = await http.post('/v1/register/individual/step6', payload)
+      return reply.send(response.data)
+    } catch (error: any) {
+      const data = error?.response?.data
+      console.error('Erro ao enviar step6 PJ', data || error)
+      return reply.code(error.response?.status || 500).send({
+        success: false,
+        message: data?.message || 'Erro ao enviar step6 PJ',
+        errors: data?.errors,
+      })
+    }
+  })
+
+  app.post('/onboarding/pj/step7', async (request, reply) => {
+    try {
+      const payload = request.body
+      const response = await http.post('/v1/register/individual/step7', payload)
+      return reply.send(response.data)
+    } catch (error: any) {
+      const data = error?.response?.data
+      console.error('Erro ao enviar step7 PJ', data || error)
+      return reply.code(error.response?.status || 500).send({
+        success: false,
+        message: data?.message || 'Erro ao enviar step7 PJ',
+        errors: data?.errors,
+      })
+    }
+  })
+
+  app.post('/onboarding/pj/step3/comprovantaddress', async (request, reply) => {
+    try {
+      const parts = request.parts()
+      const formData = new FormData()
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const buffers: Buffer[] = []
+          for await (const chunk of part.file) {
+            buffers.push(chunk)
+          }
+          const buffer = Buffer.concat(buffers)
+          formData.append(part.fieldname, buffer, {
+            filename: part.filename,
+            contentType: part.mimetype,
+          })
+        } else {
+          formData.append(part.fieldname, part.value)
+        }
+      }
+
+      const response = await http.post('/v1/register/individual/step3/comprovantaddress', formData, {
+        headers: formData.getHeaders(),
+        maxBodyLength: Infinity,
+      })
+      return reply.send(response.data)
+    } catch (error) {
+      console.error('Erro ao enviar step3_2 PJ', error)
+      return reply.code(500).send({
+        success: false,
+        message: 'Erro ao enviar step3_2 PJ',
+      })
+    }
+  })
+
+  app.post('/onboarding/pj/step3/photoselfie', async (request, reply) => {
+    try {
+      const parts = request.parts()
+      const formData = new FormData()
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const buffers: Buffer[] = []
+          for await (const chunk of part.file) {
+            buffers.push(chunk)
+          }
+          const buffer = Buffer.concat(buffers)
+          formData.append(part.fieldname, buffer, {
+            filename: part.filename,
+            contentType: part.mimetype,
+          })
+        } else {
+          formData.append(part.fieldname, part.value)
+        }
+      }
+
+      const response = await http.post('/v1/register/individual/step3/photoselfie', formData, {
+        headers: formData.getHeaders(),
+        maxBodyLength: Infinity,
+      })
+      return reply.send(response.data)
+    } catch (error) {
+      console.error('Erro ao enviar step3_3 PJ', error)
+      return reply.code(500).send({
+        success: false,
+        message: 'Erro ao enviar step3_3 PJ',
+      })
+    }
+  })
 
   app.post(
     '/onboarding/pj/:customerId/company',
@@ -182,16 +406,11 @@ app.post(
       const formData = new FormData()
 
       for await (const part of parts) {
-        // =========================
-        // CAMPOS TEXTO
-        // =========================
+
         if (part.type === 'field') {
           formData.append(part.fieldname, part.value)
         }
 
-        // =========================
-        // ARQUIVOS
-        // =========================
         if (part.type === 'file') {
           const buffer = await part.toBuffer()
 
@@ -202,7 +421,6 @@ app.post(
         }
       }
 
-      // 🔥 chama o service que fala com a API externa
       const response = await registerStep3PJ(customerId, formData)
 
       return reply.send({
@@ -231,16 +449,12 @@ app.post(
       const formData = new FormData()
 
       for await (const part of parts) {
-        // =========================
-        // CAMPOS TEXTO
-        // =========================
+
         if (part.type === 'field') {
           formData.append(part.fieldname, part.value)
         }
 
-        // =========================
-        // ARQUIVOS
-        // =========================
+
         if (part.type === 'file') {
           const buffer = await part.toBuffer()
 

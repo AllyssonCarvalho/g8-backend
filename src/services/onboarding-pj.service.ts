@@ -1,5 +1,5 @@
 import { buildPjApiPayload, validatePjPayload } from './payload-builder.service'
-import { updateUserPJ, individualRegister, getAppToken } from './g8.service'
+import { updateUserPJ, individualRegister, getAppToken, http } from './g8.service'
 import { setAppToken } from '@/utils/cronos-token'
 import { db } from '@/db'
 import { customers, onboardingStates } from '@/db/schema'
@@ -117,12 +117,28 @@ function normalizeDatesForApi(value: any): any {
 
 export async function startPjOnboarding(document: string) {
   // await ensureAppToken()
+  let response
+  try {
+    response = await individualRegister({ document })
+  } catch (err: any) {
+    const isConflict =
+      err?.code === 'CUSTOMER_ALREADY_EXISTS' ||
+      err?.statusCode === 409 ||
+      err?.response?.status === 409
 
-  const response = await individualRegister({ document })
+    if (!isConflict) throw err
+
+    // Fallback: buscar usuário existente para continuar o onboarding
+    const existing = await http.get(`/v1/register/individual/${document}`)
+    response = existing.data
+  }
 
   let customer = await db.query.customers.findFirst({
     where: eq(customers.document, document),
   })
+
+  const onboardingStatus =
+    response?.status === 'aguardando_aprovacao' ? 'completo' : 'em_cadastro'
 
   if (!customer) {
     const [created] = await db
@@ -132,7 +148,7 @@ export async function startPjOnboarding(document: string) {
         tipo_conta: 'cnpj',
         individual_id: response.individual_id,
         external_status: response.status,
-        onboarding_status: 'em_cadastro',
+        onboarding_status: onboardingStatus,
       })
       .returning()
     customer = created
@@ -142,6 +158,7 @@ export async function startPjOnboarding(document: string) {
       .set({
         individual_id: response.individual_id,
         external_status: response.status,
+        onboarding_status: onboardingStatus,
       })
       .where(eq(customers.id, customer.id))
   }
