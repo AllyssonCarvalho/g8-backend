@@ -31,6 +31,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY start.sh ./start.sh
 
 
