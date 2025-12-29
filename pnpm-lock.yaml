@@ -54,6 +54,9 @@ importers:
       '@biomejs/biome':
         specifier: 2.3.6
         version: 2.3.6
+      '@types/bcrypt':
+        specifier: ^6.0.0
+        version: 6.0.0
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.4
@@ -787,6 +790,9 @@ packages:
   '@scalar/types@0.5.2':
     resolution: {integrity: sha512-F5wyb/B/Mu56PpNqhgSfuKwiwVnmhNhzTOo+k5b++HvYhjwAnqnw8BzbDzwXhhn172IPw8kSkupA/vphw61IRA==}
     engines: {node: '>=20'}
+
+  '@types/bcrypt@6.0.0':
+    resolution: {integrity: sha512-/oJGukuH3D2+D+3H4JWLaAsJ/ji86dhRidzZ/Od7H/i8g+aCmvkeCc6Ni/f9uxGLSQVCRZkX2/lqEFG2BvWtlQ==}
 
   '@types/node@24.10.4':
     resolution: {integrity: sha512-vnDVpYPMzs4wunl27jHrfmwojOGKya0xyM3sH+UE5iv5uPS6vX7UIoh6m+vQc5LGBq52HBKPIn/zcSZVzeDEZg==}
@@ -1816,6 +1822,10 @@ snapshots:
       nanoid: 5.1.5
       type-fest: 5.0.0
       zod: 4.1.13
+
+  '@types/bcrypt@6.0.0':
+    dependencies:
+      '@types/node': 24.10.4
 
   '@types/node@24.10.4':
     dependencies:
