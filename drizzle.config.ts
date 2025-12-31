@@ -3,11 +3,15 @@ import { defineConfig } from 'drizzle-kit'
 
 dotenv.config()
 
-const isDocker = process.env.DOCKER === 'true'
+const databaseUrl = process.env.DATABASE_URL || 
+  process.env.DATABASE_URL_LOCAL ||
+  (process.env.POSTGRES_USER && process.env.POSTGRES_PASSWORD && process.env.POSTGRES_HOST && process.env.POSTGRES_DB
+    ? `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT || 5432}/${process.env.POSTGRES_DB}`
+    : null)
 
-const databaseUrl = isDocker
-  ? process.env.DATABASE_URL!
-  : process.env.DATABASE_URL_LOCAL!
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL ou variáveis POSTGRES_* são obrigatórias')
+}
 
 export default defineConfig({
   out: './drizzle',
