@@ -34,13 +34,9 @@ COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY start.sh ./start.sh
 
-
-# Copia a pasta dist gerada no build
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
-COPY --from=builder /app/drizzle ./drizzle
-
+# Dá permissão de execução ao start.sh
+RUN chmod +x start.sh
 
 EXPOSE 3333
 
-CMD ["node", "-r", "tsconfig-paths/register", "dist/server.js"]
+CMD ["sh", "start.sh"]
