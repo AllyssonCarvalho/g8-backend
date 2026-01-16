@@ -13,6 +13,7 @@ import {
 import * as httpClientModule from '../libs/http-client'
 import { http } from '../libs/http-client'
 import { upsertCustomerPf } from '@/repositories/customer-pf-repository'
+import { getAppTokenValue } from '@/utils/cronos-token'
 
 console.log('[g8.service] http-client module =', httpClientModule)
 
@@ -37,6 +38,24 @@ export const authCustomerToken = async (pub: string, secret: string) => {
     return response
   } catch (error) {
     console.error('Erro ao autenticar customer', error)
+    throw error
+  }
+}
+
+export const userAuth = async (document: string, password: string) => {
+  try {
+    const appToken = getAppTokenValue()
+    if (!appToken) {
+      await getAppToken()
+    }
+
+    const response = await http.post('v1/user/auth', {
+      document: document,
+      password: password,
+    })
+    return response
+  } catch (error) {
+    console.error('Erro ao autenticar usuário', error)
     throw error
   }
 }
