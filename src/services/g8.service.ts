@@ -41,6 +41,25 @@ export const authCustomerToken = async (pub: string, secret: string) => {
   }
 }
 
+export const userAuth = async (document: string, password: string) => {
+  try {
+    const { getAppTokenValue } = await import('@/utils/cronos-token')
+    const appToken = getAppTokenValue()
+    if (!appToken) {
+      await getAppToken()
+    }
+
+    const response = await http.post('/api/v1/user/auth', {
+      document: document,
+      password: password,
+    })
+    return response
+  } catch (error) {
+    console.error('Erro ao autenticar usuário', error)
+    throw error
+  }
+}
+
 export const individualRegister = async (data: {
   document: string
 }): Promise<OnboardingResponse> => {
