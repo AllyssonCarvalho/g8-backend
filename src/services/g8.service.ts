@@ -13,6 +13,7 @@ import {
 import * as httpClientModule from '../libs/http-client'
 import { http } from '../libs/http-client'
 import { upsertCustomerPf } from '@/repositories/customer-pf-repository'
+import { getAppTokenValue } from '@/utils/cronos-token'
 
 console.log('[g8.service] http-client module =', httpClientModule)
 
@@ -43,13 +44,12 @@ export const authCustomerToken = async (pub: string, secret: string) => {
 
 export const userAuth = async (document: string, password: string) => {
   try {
-    const { getAppTokenValue } = await import('@/utils/cronos-token')
     const appToken = getAppTokenValue()
     if (!appToken) {
       await getAppToken()
     }
 
-    const response = await http.post('/api/v1/user/auth', {
+    const response = await http.post('/v1/user/auth', {
       document: document,
       password: password,
     })
