@@ -29,10 +29,15 @@ export async function registerRoutes(app: FastifyInstance) {
   app.get('/api/users/data', async (request, reply) => {
     const { userDataCache, mapStatusToUserStatus, formatDate } = await import('./auth.routes')
     
+    console.log('[BACKEND] /api/users/data called')
+    console.log('[BACKEND] Headers:', Object.keys(request.headers))
+    console.log('[BACKEND] userToken header:', request.headers.usertoken ? 'present' : 'missing')
+    
     try {
       const userToken = request.headers.usertoken as string | undefined
 
       if (!userToken) {
+        console.log('[BACKEND] No userToken provided')
         return reply.code(401).send({
           success: false,
           message: 'Token de usuário não fornecido',
@@ -59,14 +64,25 @@ export async function registerRoutes(app: FastifyInstance) {
         })
       }
 
+      console.log('[BACKEND] Looking for userData with individualId:', individualId)
+      console.log('[BACKEND] Cache size:', userDataCache.size)
+      console.log('[BACKEND] Cache keys:', Array.from(userDataCache.keys()))
+
       const userData = userDataCache.get(individualId)
 
       if (!userData) {
+        console.log('[BACKEND] User data not found in cache for individualId:', individualId)
         return reply.code(404).send({
           success: false,
           message: 'Dados do usuário não encontrados',
         })
       }
+
+      console.log('[BACKEND] User data found:', {
+        full_name: userData.full_name,
+        status: userData.status,
+        email: userData.email,
+      })
 
       const mappedData = {
         name: userData.full_name || '',
